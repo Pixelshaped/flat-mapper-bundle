@@ -4,7 +4,7 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services
         http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="pixelshaped_flat_mapper.flat_mapper" class="Pixelshaped\FlatMapperBundle\FlatMapper" />
+        <service id="pixelshaped_flat_mapper.flat_mapper" class="Pixelshaped\FlatMapperBundle\FlatMapper" public="true" />
         <service id="Pixelshaped\FlatMapperBundle\FlatMapper" alias="pixelshaped_flat_mapper.flat_mapper" />
     </services>
 </container>

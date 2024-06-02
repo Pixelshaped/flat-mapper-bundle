@@ -1,0 +1,34 @@
+{
+    "name": "pixelshaped/flat-mapper-bundle",
+    "description": "A bundle to easily create non-scalar DTOs from denormalized database array results. It aims to compensate for the lack of non-scalar DTO hydration in Doctrine by providing tooling to create such DTOs.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Pixelshaped\\FlatMapperBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pixelshaped\\FlatMapperBundle\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Pixelshaped",
+            "email": "renaud.grand@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.2",
+        "symfony/cache-contracts": "^3.5",
+        "symfony/config": "^7.1",
+        "symfony/dependency-injection": "^7.1",
+        "symfony/http-kernel": "^7.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.1",
+        "phpstan/phpstan": "^1.11"
+    }
+}

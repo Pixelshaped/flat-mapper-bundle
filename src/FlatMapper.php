@@ -8,18 +8,24 @@ use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
 use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 use ReflectionClass;
-use ReflectionException;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 
 class FlatMapper
 {
 
+    /**
+     * @var array<class-string, array<class-string, string>>
+     */
     private array $objectIdentifiers = [];
+    /**
+     * @var array<class-string, array<class-string, array<int|string, null|string>>>
+     */
     private array $objectsMapping = [];
 
-    private ?CacheInterface $cacheService = null;
-    private bool $validateMapping = true;
+    // TODO for now those are unused
+    private ?CacheInterface $cacheService = null; // @phpstan-ignore-line
+    private bool $validateMapping = true; // @phpstan-ignore-line
 
     public function setCacheService(CacheInterface $cacheService): void
     {
@@ -30,14 +36,24 @@ class FlatMapper
     {
         $this->validateMapping = $validateMapping;
     }
+
     /**
-     * @throws ReflectionException
+     * @param class-string $dtoClassName
      */
     public function createMapping(string $dtoClassName): void
     {
-        dd($this->cacheService, $this->validateMapping);
-        // We do this array_merge so that the identifier is created at the proper position in the $this->objectIdentifiers array
-        $this->objectIdentifiers = array_merge([$dtoClassName => null], $this->objectIdentifiers);
+        $this->createMappingRecursive($dtoClassName, $dtoClassName);
+    }
+
+    /**
+     * @param class-string $dtoClassName
+     * @param class-string $rootDtoClassName
+     */
+    private function createMappingRecursive(string $dtoClassName, string $rootDtoClassName): void
+    {
+        if(!isset($this->objectIdentifiers[$rootDtoClassName])) $this->objectIdentifiers[$rootDtoClassName] = [];
+
+        $this->objectIdentifiers[$rootDtoClassName] = array_merge([$dtoClassName => 'reserved'], $this->objectIdentifiers[$rootDtoClassName]);
 
         $reflectionClass = new ReflectionClass($dtoClassName);
 
@@ -46,13 +62,13 @@ class FlatMapper
             $isIdentifier = false;
             foreach ($reflectionProperty->getAttributes() as $attribute) {
                 if ($attribute->getName() === ReferencesArray::class) {
-                    $this->objectsMapping[$dtoClassName][$propertyName] = $attribute->getArguments()[0];
-                    $this->createMapping($attribute->getArguments()[0]);
+                    $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
+                    $this->createMappingRecursive($attribute->getArguments()[0], $rootDtoClassName);
                     continue 2;
                 }
 
                 if ($attribute->getName() === ColumnArray::class) {
-                    $this->objectsMapping[$dtoClassName][$propertyName] = $attribute->getArguments()[0];
+                    $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     continue 2;
                 }
 
@@ -66,14 +82,14 @@ class FlatMapper
             }
 
             if ($isIdentifier) {
-                $this->objectIdentifiers[$dtoClassName] = $propertyName;
+                $this->objectIdentifiers[$rootDtoClassName][$dtoClassName] = $propertyName;
             }
 
-            $this->objectsMapping[$dtoClassName][$propertyName] = null;
+            $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = null;
         }
 
-        if (count($this->objectIdentifiers) !== count(array_unique($this->objectIdentifiers))) {
-            throw new RuntimeException('Several identifiers are identical: ' . print_r($this->objectIdentifiers, true));
+        if (count($this->objectIdentifiers[$rootDtoClassName]) !== count(array_unique($this->objectIdentifiers[$rootDtoClassName]))) {
+            throw new RuntimeException('Several data identifiers are identical: ' . print_r($this->objectIdentifiers[$rootDtoClassName], true));
         }
     }
 
@@ -81,8 +97,7 @@ class FlatMapper
      * @template T of object
      * @param class-string<T> $dtoClassName
      * @param array<array<mixed>> $data
-     * @return T
-     * @throws ReflectionException
+     * @return array<T>
      */
     public function map(string $dtoClassName, array $data): mixed {
 
@@ -91,17 +106,16 @@ class FlatMapper
         $objectsMap = [];
         $referencesMap = [];
         foreach ($data as $row) {
-            foreach ($this->objectIdentifiers as $objectClass => $identifier) {
+            foreach ($this->objectIdentifiers[$dtoClassName] as $objectClass => $identifier) {
                 if (!isset($row[$identifier])) {
                     throw new RuntimeException('Identifier not found: ' . $identifier);
                 }
                 if (!isset($objectsMap[$identifier][$row[$identifier]])) {
                     $constructorValues = [];
-                    foreach ($this->objectsMapping[$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
+                    foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
                         if($foreignObjectClassOrIdentifier !== null) {
-                            if (isset($this->objectsMapping[$foreignObjectClassOrIdentifier])) {
-                                // it's a reference, let's initialize an array
-                                $foreignIdentifier = $this->objectIdentifiers[$foreignObjectClassOrIdentifier];
+                            if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
+                                $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
                                 if (!isset($row[$foreignIdentifier])) {
                                     throw new RuntimeException('Foreign identifier not found: ' . $foreignIdentifier);
                                 }
@@ -117,16 +131,24 @@ class FlatMapper
                             $constructorValues[] = $row[$objectProperty];
                         }
                     }
-                    $objectsMap[$objectClass][$row[$identifier]] = new $objectClass(...$constructorValues);
+                    $dtoInstance = new $objectClass(...$constructorValues);
+                    $objectsMap[$objectClass][$row[$identifier]] = $dtoInstance;
                 }
             }
         }
 
         $this->linkObjects($referencesMap, $objectsMap);
 
-        return $objectsMap[$dtoClassName];
+        /** @var array<T>  $rootObjects */
+        $rootObjects = $objectsMap[$dtoClassName];
+        return $rootObjects;
     }
 
+    /**
+     * @template T of object
+     * @param array<class-string<T>, array<array<mixed>>> $referencesMap
+     * @param array<class-string, array<int|string, T>> $objectsMap
+     */
     private function linkObjects(array $referencesMap, array $objectsMap): void
     {
         foreach ($referencesMap as $objectClass => $references) {
