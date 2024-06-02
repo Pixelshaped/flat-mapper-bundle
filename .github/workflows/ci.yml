@@ -11,14 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Composer Init
-        uses: php-actions/composer@v6
+      - uses: shivammathur/setup-php@v2
         with:
-          php_version: "8.2"
-          php_extensions: soap intl gd
+          php-version: '8.2'
+          tools: phpunit, composer:v2
+          coverage: xdebug3
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
       - name: PHPUnit
         run: |
