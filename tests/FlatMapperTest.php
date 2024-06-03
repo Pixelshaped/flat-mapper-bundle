@@ -6,6 +6,7 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\LeafDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\RootDTO as ValidRootDTO;
@@ -24,12 +25,20 @@ class FlatMapperTest extends TestCase
         $mapper->createMapping(ValidRootDTO::class);
     }
 
-    public function testCreateMappingWithInvalidDTOsAsserts(): void
+    public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches("/Several data identifiers are identical/");
         $mapper = new FlatMapper();
         $mapper->createMapping(InvalidRootDTO::class);
+    }
+
+    public function testCreateMappingWithTooManyIdentifiersAsserts(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches("/contains more than one #\[Identifier\] attribute/");
+        $mapper = new FlatMapper();
+        $mapper->createMapping(RootDTOWithTooManyIdentifiers::class);
     }
 
     public function testMapValidNestedDTOs(): void

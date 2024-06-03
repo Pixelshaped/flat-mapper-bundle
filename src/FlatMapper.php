@@ -25,7 +25,7 @@ class FlatMapper
 
     // TODO for now those are unused
     private ?CacheInterface $cacheService = null; // @phpstan-ignore-line
-    private bool $validateMapping = true; // @phpstan-ignore-line
+    private bool $validateMapping = true;
 
     public function setCacheService(CacheInterface $cacheService): void
     {
@@ -57,7 +57,8 @@ class FlatMapper
 
         $reflectionClass = new ReflectionClass($dtoClassName);
 
-        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
+        $identifiersCount = 0;
+        foreach ($reflectionClass->getConstructor()->getParameters() as $reflectionProperty) {
             $propertyName = $reflectionProperty->getName();
             $isIdentifier = false;
             foreach ($reflectionProperty->getAttributes() as $attribute) {
@@ -65,18 +66,13 @@ class FlatMapper
                     $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     $this->createMappingRecursive($attribute->getArguments()[0], $rootDtoClassName);
                     continue 2;
-                }
-
-                if ($attribute->getName() === ColumnArray::class) {
+                } else if ($attribute->getName() === ColumnArray::class) {
                     $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     continue 2;
-                }
-
-                if ($attribute->getName() === Identifier::class) {
+                } else if ($attribute->getName() === Identifier::class) {
+                    $identifiersCount++;
                     $isIdentifier = true;
-                }
-
-                if ($attribute->getName() === InboundPropertyName::class) {
+                } else if ($attribute->getName() === InboundPropertyName::class) {
                     $propertyName = $attribute->getArguments()[0];
                 }
             }
@@ -88,8 +84,14 @@ class FlatMapper
             $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = null;
         }
 
-        if (count($this->objectIdentifiers[$rootDtoClassName]) !== count(array_unique($this->objectIdentifiers[$rootDtoClassName]))) {
-            throw new RuntimeException('Several data identifiers are identical: ' . print_r($this->objectIdentifiers[$rootDtoClassName], true));
+        if($this->validateMapping) {
+            if($identifiersCount !== 1) {
+                throw new RuntimeException($dtoClassName.' contains more than one #[Identifier] attribute.');
+            }
+
+            if (count($this->objectIdentifiers[$rootDtoClassName]) !== count(array_unique($this->objectIdentifiers[$rootDtoClassName]))) {
+                throw new RuntimeException('Several data identifiers are identical: ' . print_r($this->objectIdentifiers[$rootDtoClassName], true));
+            }
         }
     }
 
