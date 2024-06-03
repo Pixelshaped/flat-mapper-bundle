@@ -6,6 +6,7 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\LeafDTO;
@@ -39,6 +40,14 @@ class FlatMapperTest extends TestCase
         $this->expectExceptionMessageMatches("/contains more than one #\[Identifier\] attribute/");
         $mapper = new FlatMapper();
         $mapper->createMapping(RootDTOWithTooManyIdentifiers::class);
+    }
+
+    public function testCreateMappingWithNoConstructorAsserts(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches("/does not have a constructor/");
+        $mapper = new FlatMapper();
+        $mapper->createMapping(RootDTOWithoutConstructor::class);
     }
 
     public function testMapValidNestedDTOs(): void

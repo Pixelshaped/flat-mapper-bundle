@@ -57,8 +57,14 @@ class FlatMapper
 
         $reflectionClass = new ReflectionClass($dtoClassName);
 
+        $constructor = $reflectionClass->getConstructor();
+
+        if($constructor === null) {
+            throw new RuntimeException('Class "' . $dtoClassName . '" does not have a constructor.');
+        }
+
         $identifiersCount = 0;
-        foreach ($reflectionClass->getConstructor()->getParameters() as $reflectionProperty) {
+        foreach ($constructor->getParameters() as $reflectionProperty) {
             $propertyName = $reflectionProperty->getName();
             $isIdentifier = false;
             foreach ($reflectionProperty->getAttributes() as $attribute) {
@@ -101,7 +107,7 @@ class FlatMapper
      * @param array<array<mixed>> $data
      * @return array<T>
      */
-    public function map(string $dtoClassName, array $data): mixed {
+    public function map(string $dtoClassName, array $data): array {
 
         $this->createMapping($dtoClassName);
 
