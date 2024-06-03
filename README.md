@@ -37,7 +37,7 @@ The solution provided by Doctrine doesn't work. The creation of this bundle aros
 
 This bundle comes with several attributes that you can use to add mapping to your DTOs:
 
-- `#[Identifier]`: Any DTO has to have at least one identifier. This identifier is used to create the DTO only once.
+- `#[Identifier]`: Any DTO has to have exactly one identifier. This identifier is used to create the DTO only once.
 - `#[InboundProperty("property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set.
 - `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`
 - `#[ColumnArray("property_name")]` the column `property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
