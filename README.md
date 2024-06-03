@@ -16,7 +16,7 @@ class CustomerDTO
 }
 ```
 
-Doctrine can execute a query that produces a `array<CustomerDTO>`:
+Doctrine can execute a query that produces an array `array<CustomerDTO>`:
 
 ```php
 <?php
@@ -68,4 +68,4 @@ $flatMapper = new \Pixelshaped\FlatMapperBundle\FlatMapper()
 $flatMapper->map(CustomerDTO::class, $result);
 ```
 
-Will give you an array of `CustomerDTO`, with the `$shoppingListIds` property populated with an array of corresponding ShoppingLists.
+Will give you an array of `CustomerDTO`, with the `$shoppingListIds` property populated with an array of corresponding ShoppingList IDs.
