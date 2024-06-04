@@ -26,8 +26,7 @@ class FlatMapper
      */
     private array $objectsMapping = [];
 
-    // TODO for now those are unused
-    private ?CacheInterface $cacheService = null; // @phpstan-ignore-line
+    private ?CacheInterface $cacheService = null;
     private bool $validateMapping = true;
 
     public function setCacheService(CacheInterface $cacheService): void
@@ -63,14 +62,14 @@ class FlatMapper
 
     /**
      * @param class-string $dtoClassName
+     * @param array<class-string, string>|null $objectIdentifiers
+     * @param array<class-string, array<int|string, null|string>>|null $objectsMapping
      * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
      */
     private function createMappingRecursive(string $dtoClassName, array& $objectIdentifiers = null, array& $objectsMapping = null): array
     {
-        if($objectIdentifiers === null && $objectsMapping === null) {
-            $objectIdentifiers = [];
-            $objectsMapping = [];
-        }
+        if($objectIdentifiers === null) $objectIdentifiers = [];
+        if($objectsMapping === null) $objectsMapping = [];
 
         $objectIdentifiers = array_merge([$dtoClassName => 'RESERVED'], $objectIdentifiers);
 
