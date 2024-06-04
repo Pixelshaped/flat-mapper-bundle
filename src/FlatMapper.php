@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle;
 
-use App\Entity\Main\GlobalConfig;
-use App\Utils\Constants\CacheKeys;
 use Pixelshaped\FlatMapperBundle\Attributes\ColumnArray;
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
@@ -12,7 +10,6 @@ use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 use ReflectionClass;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 class FlatMapper
 {

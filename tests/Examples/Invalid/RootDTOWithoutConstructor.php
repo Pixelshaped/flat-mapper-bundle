@@ -5,8 +5,6 @@ namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid;
 
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
-use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\LeafDTO;
 
 class RootDTOWithoutConstructor
 {
