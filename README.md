@@ -1,6 +1,6 @@
 # Flat Mapper Bundle
 
-This bundle aims to solve the problem of building DTOs from database queries results.
+This bundle aims to solve the problem of building DTOs with non-scalar properties from database queries results.
 
 ## Introduction
 
@@ -29,9 +29,43 @@ Unfortunately, if you need to retrieve DTOs with non-scalar properties, such as:
 - an array of IDs
 - an array of nested DTOs
 
-The solution provided by Doctrine doesn't work. The creation of this bundle arose from that situation.
+then, the solution provided by Doctrine doesn't work. The creation of this bundle arose from that situation. With it, you can do:
+
+```php
+$flatMapper->map(NonScalarCustomerDTO::class, $query->getArrayResult());
+```
 
 ## How to use?
+
+### Configuration
+
+This bundle can work without any Symfony configuration, but will display better performance if mapping validation is disabled and some cache service is autowired.
+
+```yaml
+# config/pixelshaped_flat_mapper.yaml
+pixelshaped_flat_mapper:
+    validate_mapping: '%kernel.debug%' # disable on prod environment
+    cache_service: cache.app
+```
+
+### Mapping pre-caching
+
+The mapping for a DTO is created the first time the function is called. Subsequent calls during the same script execution won't recreate the mapping. If a cache service is configured, mapping will be loaded from the cache for next script executions.
+
+If you want to cache all your DTOs in advance to avoid doing it on your hotpaths, you can do:
+
+```php
+$dtoClassNames = [CustomerDTO::class, ...];
+foreach($dtoClassNames as $className) {
+    $flatMapper->createMapping($className);
+}
+```
+
+This should be regarded as optional. Mapping information will also be created when direclty calling:
+
+```php
+$flatMapper->map(CustomerDTO::class, $results);
+```
 
 ### Add mapping to your DTOs
 
@@ -199,3 +233,20 @@ $flatMapper->map(CustomerDTO::class, $result);
 ```
 
 Will give you an array of `CustomerDTO`, with the `$shoppingListIds` property populated with an array of corresponding ShoppingList IDs.
+
+### Usage without Symfony
+
+You can use this package without Symfony. Just instantiate the `FlatMapper` class and use its methods.
+
+## Alternatives
+
+When I started coding this, I looked for alternatives but found only partial ones:
+
+- [mark-gerarts/automapper-plus](https://github.com/mark-gerarts/automapper-plus) is great at mapping objects to other objects (namely, entities to DTOs and vice versa), but doesn't solve the problem of mapping denormalized data (i.e. an array with the information for several objects on each row and a lot of redundancy between rows) to objects.
+- [jolicode/automapper](https://github.com/jolicode/automapper) is a great alternative to the previous bundle with the same limitations.
+- [sunrise-php/hydrator](https://github.com/sunrise-php/hydrator) can map arrays to objects, but not denormalized arrays 
+- Several other bundles can map JSON info to objects.
+- [doctrine/orm](https://github.com/doctrine/orm) solves this problem internally using [ResultSetMapping](https://www.doctrine-project.org/projects/doctrine-orm/en/2.14/reference/native-sql.html#the-resultsetmapping). It can join on Entities but can't for DTOs because there's no way do declare a mapping for a DTO. That's actually why Doctrine only handles DTOs with scalar properties.
+- You can technically build `PARTIAL` objects with Doctrine, but I consider this to be a bad practice as the next developer has no idea if the object at hand is a complete one or not. You could then map it to a DTO and discard it to avoid this situation, but the algorithmic complexity will likely be higher than the mapping we do with our bundle (O(n)).
+
+Do not hesitate to suggest alternatives or to contribute.

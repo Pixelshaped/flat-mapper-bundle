@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle;
 
+use App\Entity\Main\GlobalConfig;
+use App\Utils\Constants\CacheKeys;
 use Pixelshaped\FlatMapperBundle\Attributes\ColumnArray;
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
@@ -10,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 use ReflectionClass;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 class FlatMapper
 {
@@ -42,18 +45,34 @@ class FlatMapper
      */
     public function createMapping(string $dtoClassName): void
     {
-        $this->createMappingRecursive($dtoClassName, $dtoClassName);
+        if(!isset($this->objectsMapping[$dtoClassName])) {
+
+            if($this->cacheService !== null) {
+                $cacheKey = preg_replace("/([^a-zA-Z0-9]+)/","_", $dtoClassName);;
+                $mappingInfo = $this->cacheService->get('pixelshaped_flat_mapper_'.$cacheKey, function () use ($dtoClassName): array {
+                    return $this->createMappingRecursive($dtoClassName);
+                });
+            } else {
+                $mappingInfo = $this->createMappingRecursive($dtoClassName);
+            }
+
+            $this->objectsMapping[$dtoClassName] = $mappingInfo['objectsMapping'];
+            $this->objectIdentifiers[$dtoClassName] = $mappingInfo['objectIdentifiers'];
+        }
     }
 
     /**
      * @param class-string $dtoClassName
-     * @param class-string $rootDtoClassName
+     * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
      */
-    private function createMappingRecursive(string $dtoClassName, string $rootDtoClassName): void
+    private function createMappingRecursive(string $dtoClassName, array& $objectIdentifiers = null, array& $objectsMapping = null): array
     {
-        if(!isset($this->objectIdentifiers[$rootDtoClassName])) $this->objectIdentifiers[$rootDtoClassName] = [];
+        if($objectIdentifiers === null && $objectsMapping === null) {
+            $objectIdentifiers = [];
+            $objectsMapping = [];
+        }
 
-        $this->objectIdentifiers[$rootDtoClassName] = array_merge([$dtoClassName => 'reserved'], $this->objectIdentifiers[$rootDtoClassName]);
+        $objectIdentifiers = array_merge([$dtoClassName => 'RESERVED'], $objectIdentifiers);
 
         $reflectionClass = new ReflectionClass($dtoClassName);
 
@@ -69,11 +88,11 @@ class FlatMapper
             $isIdentifier = false;
             foreach ($reflectionProperty->getAttributes() as $attribute) {
                 if ($attribute->getName() === ReferencesArray::class) {
-                    $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
-                    $this->createMappingRecursive($attribute->getArguments()[0], $rootDtoClassName);
+                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
+                    $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
                     continue 2;
                 } else if ($attribute->getName() === ColumnArray::class) {
-                    $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
+                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
                     $identifiersCount++;
@@ -84,21 +103,26 @@ class FlatMapper
             }
 
             if ($isIdentifier) {
-                $this->objectIdentifiers[$rootDtoClassName][$dtoClassName] = $propertyName;
+                $objectIdentifiers[$dtoClassName] = $propertyName;
             }
 
-            $this->objectsMapping[$rootDtoClassName][$dtoClassName][$propertyName] = null;
+            $objectsMapping[$dtoClassName][$propertyName] = null;
         }
 
         if($this->validateMapping) {
             if($identifiersCount !== 1) {
-                throw new RuntimeException($dtoClassName.' contains more than one #[Identifier] attribute.');
+                throw new RuntimeException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
 
-            if (count($this->objectIdentifiers[$rootDtoClassName]) !== count(array_unique($this->objectIdentifiers[$rootDtoClassName]))) {
-                throw new RuntimeException('Several data identifiers are identical: ' . print_r($this->objectIdentifiers[$rootDtoClassName], true));
+            if (count($objectIdentifiers) !== count(array_unique($objectIdentifiers))) {
+                throw new RuntimeException('Several data identifiers are identical: ' . print_r($objectIdentifiers, true));
             }
         }
+
+        return [
+            'objectIdentifiers' => $objectIdentifiers,
+            'objectsMapping' => $objectsMapping
+        ];
     }
 
     /**

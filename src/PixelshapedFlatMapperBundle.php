@@ -32,7 +32,7 @@ class PixelshapedFlatMapperBundle extends AbstractBundle
     {
         $definition->rootNode() // @phpstan-ignore-line
             ->children()
-                ->booleanNode('validate_mapping')->defaultFalse()->end()
+                ->booleanNode('validate_mapping')->defaultTrue()->end()
                 ->scalarNode('cache_service')->defaultNull()->end()
         ;
     }
