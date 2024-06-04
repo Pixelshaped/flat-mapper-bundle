@@ -16,12 +16,7 @@ class CustomerDTO
 {
     public function __construct($name, $email, $city, $value = null){ /* ... */ }
 }
-```
 
-Doctrine can execute a query that produces an array `array<CustomerDTO>`:
-
-```php
-<?php
 $query = $em->createQuery('SELECT NEW CustomerDTO(c.name, e.email, a.city) FROM Customer c JOIN c.email e JOIN c.address a');
 $users = $query->getResult(); // array<CustomerDTO>
 ```
