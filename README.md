@@ -1,3 +1,5 @@
+![CI](https://github.com/github/docs/actions/workflows/ci.yml/badge.svg)
+
 # Flat Mapper Bundle
 
 This bundle aims to solve the problem of building DTOs with non-scalar properties from database queries results.
