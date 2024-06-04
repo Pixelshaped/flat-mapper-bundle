@@ -1,4 +1,4 @@
-![CI](https://github.com/github/docs/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/pixelshaped/flat-mapper-bundle/actions/workflows/ci.yml/badge.svg)
 
 # Flat Mapper Bundle
 
