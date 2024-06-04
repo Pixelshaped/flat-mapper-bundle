@@ -61,7 +61,7 @@ foreach($dtoClassNames as $className) {
 }
 ```
 
-This should be regarded as optional. Mapping information will also be created when direclty calling:
+This should be regarded as optional. Mapping information be created in any case when calling:
 
 ```php
 $flatMapper->map(CustomerDTO::class, $results);
