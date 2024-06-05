@@ -41,13 +41,24 @@ $flatMapper->map(NonScalarCustomerDTO::class, $query->getArrayResult());
 
 ### Configuration
 
-This bundle can work without any Symfony configuration, but will display better performance if mapping validation is disabled and some cache service is autowired.
+This bundle can work without any configuration, but will display better performance if mapping validation is disabled and some cache service is autowired.
+
+If you use Symfony, you can create a configuration file to do so:
 
 ```yaml
 # config/pixelshaped_flat_mapper.yaml
 pixelshaped_flat_mapper:
     validate_mapping: '%kernel.debug%' # disable on prod environment
     cache_service: cache.app
+```
+
+If you don't, you can still benefit from this when instantiating `FlatMapper`, i.e.:
+
+```php
+$flatMapper = (new FlatMapper())
+    ->setCacheService($yourCacheService) // PSR-6
+    ->setValidateMapping(false)
+;
 ```
 
 ### Mapping pre-caching
