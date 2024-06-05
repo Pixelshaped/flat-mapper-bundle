@@ -236,6 +236,27 @@ $flatMapper->map(CustomerDTO::class, $result);
 
 Will give you an array of `CustomerDTO`, with the `$shoppingListIds` property populated with an array of corresponding ShoppingList IDs.
 
+### Working with pagination
+
+You can still use [Doctrine](https://www.doctrine-project.org/projects/doctrine-orm/en/3.2/tutorials/pagination.html) to paginate your DQL query:
+
+```php
+$qb = $customerRepository->createQueryBuilder('customer');
+$qb
+    ->leftJoin('customer.addresses', 'customer_addresses')
+    ->select('customer.id AS customer_id, customer.ref AS customer_ref, customer_addresses.id AS address_id')
+    ->setFirstResult(0)
+    ->setMaxResults(10)
+    ;
+
+$paginator = new Paginator($qb->getQuery(), fetchJoinCollection: true);
+$paginator->setUseOutputWalkers(false);
+
+$result = $flatMapper->map(CustomerWithAddressesDTO::class, $paginator);
+```
+
+Will get you an array of 10 `CustomerWithAddressesDTO` (granted you do have 10 in your db).
+
 ### Usage without Symfony
 
 You can use this package without Symfony. Just instantiate the `FlatMapper` class and use its methods.
