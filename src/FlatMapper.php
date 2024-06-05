@@ -130,7 +130,7 @@ class FlatMapper
     public function map(string $dtoClassName, iterable $data): array {
 
         $this->createMapping($dtoClassName);
-
+        
         $objectsMap = [];
         $referencesMap = [];
         foreach ($data as $row) {
@@ -172,14 +172,14 @@ class FlatMapper
         $this->linkObjects($referencesMap, $objectsMap);
 
         /** @var array<T>  $rootObjects */
-        $rootObjects = $objectsMap[$dtoClassName];
+        $rootObjects = array_key_exists($dtoClassName, $objectsMap) ? $objectsMap[$dtoClassName] : [];
         return $rootObjects;
     }
 
     /**
      * @template T of object
      * @param array<class-string<T>, array<array<mixed>>> $referencesMap
-     * @param array<class-string, array<int|string, T>> $objectsMap
+     * @param array<class-string<T>, array<int|string, T>> $objectsMap
      */
     private function linkObjects(array $referencesMap, array $objectsMap): void
     {

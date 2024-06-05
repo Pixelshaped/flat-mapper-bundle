@@ -115,4 +115,14 @@ class FlatMapperTest extends TestCase
             var_export($handmadeResult, true)
         );
     }
+
+    public function testMapEmptyData(): void
+    {
+        $flatMapperResults = ((new FlatMapper())->map(ColumnArrayDTO::class, []));
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export([], true)
+        );
+    }
 }
