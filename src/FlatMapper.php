@@ -124,10 +124,10 @@ class FlatMapper
     /**
      * @template T of object
      * @param class-string<T> $dtoClassName
-     * @param array<array<mixed>> $data
+     * @param iterable<array<mixed>> $data
      * @return array<T>
      */
-    public function map(string $dtoClassName, array $data): array {
+    public function map(string $dtoClassName, iterable $data): array {
 
         $this->createMapping($dtoClassName);
 
@@ -135,22 +135,26 @@ class FlatMapper
         $referencesMap = [];
         foreach ($data as $row) {
             foreach ($this->objectIdentifiers[$dtoClassName] as $objectClass => $identifier) {
-                if (!isset($row[$identifier])) {
+                if (!array_key_exists($identifier, $row)) {
                     throw new RuntimeException('Identifier not found: ' . $identifier);
                 }
-                if (!isset($objectsMap[$identifier][$row[$identifier]])) {
+                if ($row[$identifier] !== null && !isset($objectsMap[$identifier][$row[$identifier]])) {
                     $constructorValues = [];
                     foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
                         if($foreignObjectClassOrIdentifier !== null) {
                             if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
                                 $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
-                                if (!isset($row[$foreignIdentifier])) {
+                                if (!array_key_exists($foreignIdentifier, $row)) {
                                     throw new RuntimeException('Foreign identifier not found: ' . $foreignIdentifier);
                                 }
-                                $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
+                                if($row[$foreignIdentifier] !== null) {
+                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
+                                }
                                 $constructorValues[] = [];
-                            } else if (isset($row[$foreignObjectClassOrIdentifier])) {
-                                $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
+                            } else if (array_key_exists($foreignObjectClassOrIdentifier, $row)) {
+                                if($row[$foreignObjectClassOrIdentifier] !== null) {
+                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
+                                }
                                 $constructorValues[] = [];
                             } else {
                                 throw new RuntimeException($foreignObjectClassOrIdentifier.' is neither a foreign identifier nor a foreign object class.');

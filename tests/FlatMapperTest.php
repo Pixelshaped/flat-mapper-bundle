@@ -6,13 +6,13 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\LeafDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\RootDTO as ValidRootDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use RuntimeException;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
@@ -67,6 +67,7 @@ class FlatMapperTest extends TestCase
             ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 3, 'object2_name' => 'Leaf 3', 'object2_value' => 'Value 3'],
             ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 1, 'object2_name' => 'Leaf 1', 'object2_value' => 'Value 1'],
             ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 4, 'object2_name' => 'Leaf 4', 'object2_value' => 'Value 4'],
+            ['object1_id' => 5, 'object1_name' => 'Root 5', 'object2_id' => null, 'object2_name' => null, 'object2_value' => null],
         ];
 
         $flatMapperResults = ((new FlatMapper())->map(ValidRootDTO::class, $results));
@@ -82,7 +83,8 @@ class FlatMapperTest extends TestCase
         $rootDto2 = new ValidRootDTO(2, "Root 2", [
             1 => $leafDto1, 4 => $leafDto4
         ]);
-        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2];
+        $rootDto5 = new ValidRootDTO(5, "Root 5", []);
+        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2, 5 => $rootDto5];
 
         $this->assertSame(
             var_export($flatMapperResults, true),
@@ -98,13 +100,15 @@ class FlatMapperTest extends TestCase
             ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 3],
             ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 1],
             ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 4],
+            ['object1_id' => 5, 'object1_name' => 'Root 5', 'object2_id' => null],
         ];
 
         $flatMapperResults = ((new FlatMapper())->map(ColumnArrayDTO::class, $results));
 
         $rootDto1 = new ColumnArrayDTO(1, "Root 1", [1, 2, 3]);
         $rootDto2 = new ColumnArrayDTO(2, "Root 2", [1, 4]);
-        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2];
+        $rootDto5 = new ColumnArrayDTO(5, "Root 5", []);
+        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2, 5 => $rootDto5];
 
         $this->assertSame(
             var_export($flatMapperResults, true),
