@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid;
+namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray;
 
-use Pixelshaped\FlatMapperBundle\Attributes\ColumnArray;
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
+use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 
-class ColumnArrayDTO
+class RootDTO
 {
     /**
-     * @param array<int> $object2s
+     * @param array<LeafDTO> $leafs
      */
     public function __construct(
         #[Identifier]
@@ -18,7 +18,7 @@ class ColumnArrayDTO
         public int $id,
         #[InboundPropertyName('object1_name')]
         public string $name,
-        #[ColumnArray('object2_id')]
-        public array $object2s,
+        #[ReferencesArray(LeafDTO::class)]
+        public array $leafs,
     ) {}
 }

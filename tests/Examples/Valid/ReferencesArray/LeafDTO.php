@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid;
+namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray;
 
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;

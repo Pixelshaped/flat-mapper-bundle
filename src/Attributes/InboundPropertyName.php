@@ -6,9 +6,9 @@ namespace Pixelshaped\FlatMapperBundle\Attributes;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-class InboundPropertyName
+final readonly class InboundPropertyName
 {
-    public function __construct(public string $propertyName)
+    public function __construct(public string $inboundPropertyName)
     {
     }
 }

@@ -79,6 +79,17 @@ class FlatMapper
         }
 
         $identifiersCount = 0;
+
+        $classIdentifierAttributes = $reflectionClass->getAttributes(Identifier::class);
+        if(!empty($classIdentifierAttributes)) {
+            if(isset($classIdentifierAttributes[0]->getArguments()[0]) && $classIdentifierAttributes[0]->getArguments()[0] !== null) {
+                $objectIdentifiers[$dtoClassName] = $classIdentifierAttributes[0]->getArguments()[0];
+                $identifiersCount++;
+            } else {
+                throw new RuntimeException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
+            }
+        }
+
         foreach ($constructor->getParameters() as $reflectionProperty) {
             $propertyName = $reflectionProperty->getName();
             $isIdentifier = false;
@@ -93,6 +104,9 @@ class FlatMapper
                 } else if ($attribute->getName() === Identifier::class) {
                     $identifiersCount++;
                     $isIdentifier = true;
+                    if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
+                        $propertyName = $attribute->getArguments()[0];
+                    }
                 } else if ($attribute->getName() === InboundPropertyName::class) {
                     $propertyName = $attribute->getArguments()[0];
                 }

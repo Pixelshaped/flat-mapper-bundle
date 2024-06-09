@@ -2,7 +2,7 @@
 
 # Flat Mapper Bundle
 
-This bundle aims to solve the problem of building DTOs with non-scalar properties from database queries results.
+This bundle aims to solve the problem of building nested DTOs from flat arrays (such as database queries results).
 
 ## Introduction
 
@@ -38,6 +38,12 @@ $flatMapper->map(NonScalarCustomerDTO::class, $query->getArrayResult());
 ```
 
 ## How to use?
+
+### Installation
+
+```bash
+composer require pixelshaped/flat-mapper-bundle
+```
 
 ### Configuration
 
@@ -84,17 +90,21 @@ $flatMapper->map(CustomerDTO::class, $results);
 
 This bundle comes with several attributes that you can use to add mapping to your DTOs:
 
-- `#[Identifier]`: Any DTO has to have exactly one identifier. This identifier is used to create the DTO only once.
-- `#[InboundProperty("property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set.
-- `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`
-- `#[ColumnArray("property_name")]` the column `property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
+- `#[Identifier]`: Any DTO has to have exactly one identifier. This identifier is used internally to keep track of the DTO instances and to create them only once. You can:
+  - Use it as a Class attribute if you don't intend to use the property yourself ([see example](tests/Examples/Valid/Complex/ProductDTO.php)). It will then only be used internally and not be mapped to your DTO.
+  - Use it as a Property attribute if you have some use for it ([see example](tests/Examples/Valid/Complex/CustomerDTO.php)).
+  - Specify the mapped property name directly on the attribute ([see example](tests/Examples/Valid/Complex/InvoiceDTO.php)). This is mandatory when used as a Class attribute.
+  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferencesArray/RootDTO.php)).
+- `#[InboundProperty("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set.
+- `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
+- `#[ColumnArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
 
 ### Hydrating nested DTOs
 
 Given:
 
-- [RootDTO](tests/Examples/Valid/RootDTO.php)
-- [LeafDTO](tests/Examples/Valid/LeafDTO.php)
+- [RootDTO](tests/Examples/Valid/ReferencesArray/RootDTO.php)
+- [LeafDTO](tests/Examples/Valid/ReferencesArray/LeafDTO.php)
 
 Calling FlatMapper with the following result set:
 
@@ -168,7 +178,7 @@ Array
 
 ### Hydrating Column Arrays
 
-Given [ColumnArrayDTO](tests/Examples/Valid/ColumnArrayDTO.php)
+Given [ColumnArrayDTO](tests/Examples/Valid/ColumnArray/ColumnArrayDTO.php)
 
 Calling FlatMapper with the following result set:
 ```php
