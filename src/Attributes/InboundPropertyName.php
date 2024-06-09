@@ -8,7 +8,7 @@ use Attribute;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final readonly class InboundPropertyName
 {
-    public function __construct(public string $inboundPropertyName)
-    {
-    }
+    public function __construct(
+        public string $inboundPropertyName
+    ) {}
 }
