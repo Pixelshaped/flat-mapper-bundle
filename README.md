@@ -1,3 +1,4 @@
+[![Latest Stable Version](https://img.shields.io/packagist/v/pixelshaped/flat-mapper-bundle.svg)](https://packagist.org/packages/pixelshaped/flat-mapper-bundle)
 ![CI](https://github.com/pixelshaped/flat-mapper-bundle/actions/workflows/ci.yml/badge.svg)
 
 # Flat Mapper Bundle
