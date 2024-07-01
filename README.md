@@ -96,7 +96,7 @@ This bundle comes with several attributes that you can use to add mapping to you
   - Use it as a Property attribute if you have some use for it ([see example](tests/Examples/Valid/Complex/CustomerDTO.php)).
   - Specify the mapped property name directly on the attribute ([see example](tests/Examples/Valid/Complex/InvoiceDTO.php)). This is mandatory when used as a Class attribute.
   - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferencesArray/RootDTO.php)).
-- `#[InboundProperty("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set.
+- `#[InboundProperty("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set ([see example](tests/Examples/Valid/WithoutAttributeDTO.php)).
 - `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
 - `#[ColumnArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
 
