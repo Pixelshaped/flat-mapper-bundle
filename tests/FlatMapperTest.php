@@ -17,6 +17,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\LeafDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\RootDTO as ValidRootDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use RuntimeException;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
@@ -174,6 +175,25 @@ class FlatMapperTest extends TestCase
         /** @var CustomerDTO $customerDto */
         $customerDto = $flatMapperResults[12];
         $this->assertEquals(138619, $customerDto->getTotalPurchases());
+    }
+
+    public function testMapWithoutAttributeDTO(): void
+    {
+        $results = [
+            ['id' => 1, 'foo' => 'Foo 1', 'bar' => 1],
+            ['id' => 2, 'foo' => 'Foo 2', 'bar' => 2],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(WithoutAttributeDTO::class, $results));
+
+        $rootDto1 = new WithoutAttributeDTO(1, "Foo 1", 1);
+        $rootDto2 = new WithoutAttributeDTO(2, "Foo 2", 2);
+        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
     }
 
     public function testMapEmptyData(): void
