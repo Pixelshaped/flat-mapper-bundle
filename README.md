@@ -37,6 +37,13 @@ then, the solution provided by Doctrine doesn't work. The creation of this bundl
 ```php
 $flatMapper->map(NonScalarCustomerDTO::class, $query->getArrayResult());
 ```
+### Naming
+
+While using Object-Relational Mapping techniques, this package is not a full-fledged ORM in the accepted sense of the word, as it only handles the mapping of "flat" data to objects. Hence, the name "Flat Mapper".
+
+### Purpose
+
+Its purpose is to sit on top of your Persistence Layer and help you create DTOs for your Business Layer, in the same way you would with the Doctrine `NEW` keyword, except at depth. Other ways to do that generally imply mapping entities to DTOs which is less performant (memory and CPU wise).
 
 ## How to use?
 
