@@ -10,7 +10,7 @@ use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 class AuthorDTO
 {
     /**
-     * @param array<BookDTO> $leafs
+     * @param array<BookDTO> $books
      */
     public function __construct(
         #[Identifier]
@@ -19,6 +19,6 @@ class AuthorDTO
         #[InboundPropertyName('author_name')]
         public string $name,
         #[ReferencesArray(BookDTO::class)]
-        public array $leafs,
+        public array $books,
     ) {}
 }
