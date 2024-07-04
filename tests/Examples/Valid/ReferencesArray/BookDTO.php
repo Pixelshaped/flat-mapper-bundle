@@ -6,15 +6,15 @@ namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray;
 use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
 
-class LeafDTO
+class BookDTO
 {
     public function __construct(
         #[Identifier]
-        #[InboundPropertyName('object2_id')]
+        #[InboundPropertyName('book_id')]
         public int $id,
-        #[InboundPropertyName('object2_name')]
+        #[InboundPropertyName('book_name')]
         public string $name,
-        #[InboundPropertyName('object2_value')]
-        public string $value,
+        #[InboundPropertyName('book_publisher_name')]
+        public string $publisherName,
     ) {}
 }

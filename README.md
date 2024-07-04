@@ -102,7 +102,7 @@ This bundle comes with several attributes that you can use to add mapping to you
   - Use it as a Class attribute if you don't intend to use the property yourself ([see example](tests/Examples/Valid/Complex/ProductDTO.php)). It will then only be used internally and not be mapped to your DTO.
   - Use it as a Property attribute if you have some use for it ([see example](tests/Examples/Valid/Complex/CustomerDTO.php)).
   - Specify the mapped property name directly on the attribute ([see example](tests/Examples/Valid/Complex/InvoiceDTO.php)). This is mandatory when used as a Class attribute.
-  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferencesArray/RootDTO.php)).
+  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)).
 - `#[InboundProperty("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set ([see example](tests/Examples/Valid/WithoutAttributeDTO.php)).
 - `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
 - `#[ColumnArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
@@ -111,18 +111,18 @@ This bundle comes with several attributes that you can use to add mapping to you
 
 Given:
 
-- [RootDTO](tests/Examples/Valid/ReferencesArray/RootDTO.php)
-- [LeafDTO](tests/Examples/Valid/ReferencesArray/LeafDTO.php)
+- [AuthorDTO](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)
+- [BookDTO](tests/Examples/Valid/ReferencesArray/BookDTO.php)
 
 Calling FlatMapper with the following result set:
 
 ```php
 $results = [
-    ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 1, 'object2_name' => 'Leaf 1', 'object2_value' => 'Value 1'],
-    ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 2, 'object2_name' => 'Leaf 2', 'object2_value' => 'Value 2'],
-    ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 3, 'object2_name' => 'Leaf 3', 'object2_value' => 'Value 3'],
-    ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 1, 'object2_name' => 'Leaf 1', 'object2_value' => 'Value 1'],
-    ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 4, 'object2_name' => 'Leaf 4', 'object2_value' => 'Value 4'],
+    ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+    ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+    ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 3, 'book_name' => 'Coding on the road', 'book_publisher_name' => 'Ipsum Books'],
+    ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+    ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 4, 'book_name' => 'My best recipes', 'book_publisher_name' => 'Cooking and Stuff'],
 ];
 
 $flatMapper->map(RootDTO::class, $results);
@@ -133,51 +133,49 @@ Will output:
 ```php
 Array
 (
-    [1] => RootDTO Object
+    [1] => AuthorDTO Object
         (
             [id] => 1
-            [name] => Root 1
+            [name] => Alice Brian
             [leafs] => Array
                 (
-                    [1] => LeafDTO Object
+                    [1] => BookDTO Object
                         (
                             [id] => 1
-                            [name] => Leaf 1
-                            [value] => Value 1
+                            [name] => "Travelling as a group"
+                            [publisherName] => "TravelBooks"
                         )
-
-                    [2] => LeafDTO Object
+                    [2] => BookDTO Object
                         (
                             [id] => 2
-                            [name] => Leaf 2
-                            [value] => Value 2
+                            [name] => "My journeys"
+                            [publisherName] => "Lorem Press"
                         )
-
-                    [3] => LeafDTO Object
+                    [3] => BookDTO Object
                         (
                             [id] => 3
-                            [name] => Leaf 3
-                            [value] => Value 3
+                            [name] => "Coding on the road"
+                            [publisherName] => "Ipsum Books"
                         )
                 )
         )
-    [2] => RootDTO Object
+    [2] => AuthorDTO Object
         (
             [id] => 2
-            [name] => Root 2
+            [name] => Bob Schmo
             [leafs] => Array
                 (
-                    [1] => LeafDTO Object
+                    [1] => BookDTO Object
                         (
                             [id] => 1
-                            [name] => Leaf 1
-                            [value] => Value 1
+                            [name] => "Travelling as a group"
+                            [publisherName] => "TravelBooks"
                         )
-                    [4] => LeafDTO Object
+                    [4] => BookDTO Object
                         (
                             [id] => 4
-                            [name] => Leaf 4
-                            [value] => Value 4
+                            [name] => "My best recipes"
+                            [publisherName] => "Cooking and Stuff"
                         )
                 )
         )

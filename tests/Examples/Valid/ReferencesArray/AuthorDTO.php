@@ -7,18 +7,18 @@ use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
 use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
 use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 
-class RootDTO
+class AuthorDTO
 {
     /**
-     * @param array<LeafDTO> $leafs
+     * @param array<BookDTO> $leafs
      */
     public function __construct(
         #[Identifier]
-        #[InboundPropertyName('object1_id')]
+        #[InboundPropertyName('author_id')]
         public int $id,
-        #[InboundPropertyName('object1_name')]
+        #[InboundPropertyName('author_name')]
         public string $name,
-        #[ReferencesArray(LeafDTO::class)]
+        #[ReferencesArray(BookDTO::class)]
         public array $leafs,
     ) {}
 }

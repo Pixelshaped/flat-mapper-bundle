@@ -15,8 +15,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArray\ColumnArrayDTO
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\LeafDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\RootDTO as ValidRootDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\AuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use RuntimeException;
 
@@ -29,7 +29,7 @@ class FlatMapperTest extends TestCase
         $this->expectNotToPerformAssertions();
         $mapper = new FlatMapper();
         $mapper->createMapping(ColumnArrayDTO::class);
-        $mapper->createMapping(ValidRootDTO::class);
+        $mapper->createMapping(AuthorDTO::class);
     }
 
     public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
@@ -75,29 +75,29 @@ class FlatMapperTest extends TestCase
     public function testMapValidNestedDTOs(): void
     {
         $results = [
-            ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 1, 'object2_name' => 'Leaf 1', 'object2_value' => 'Value 1'],
-            ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 2, 'object2_name' => 'Leaf 2', 'object2_value' => 'Value 2'],
-            ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 3, 'object2_name' => 'Leaf 3', 'object2_value' => 'Value 3'],
-            ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 1, 'object2_name' => 'Leaf 1', 'object2_value' => 'Value 1'],
-            ['object1_id' => 2, 'object1_name' => 'Root 2', 'object2_id' => 4, 'object2_name' => 'Leaf 4', 'object2_value' => 'Value 4'],
-            ['object1_id' => 5, 'object1_name' => 'Root 5', 'object2_id' => null, 'object2_name' => null, 'object2_value' => null],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 3, 'book_name' => 'Coding on the road', 'book_publisher_name' => 'Ipsum Books'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 4, 'book_name' => 'My best recipes', 'book_publisher_name' => 'Cooking and Stuff'],
+            ['author_id' => 5, 'author_name' => 'Charlie Doe', 'book_id' => null, 'book_name' => null, 'book_publisher_name' => null],
         ];
 
-        $flatMapperResults = ((new FlatMapper())->map(ValidRootDTO::class, $results));
+        $flatMapperResults = ((new FlatMapper())->map(AuthorDTO::class, $results));
 
-        $leafDto1 = new LeafDTO(1, "Leaf 1", "Value 1");
-        $leafDto2 = new LeafDTO(2, "Leaf 2", "Value 2");
-        $leafDto3 = new LeafDTO(3, "Leaf 3", "Value 3");
-        $leafDto4 = new LeafDTO(4, "Leaf 4", "Value 4");
+        $bookDto1 = new BookDTO(1, "Travelling as a group", "TravelBooks");
+        $bookDto2 = new BookDTO(2, "My journeys", "Lorem Press");
+        $bookDto3 = new BookDTO(3, "Coding on the road", "Ipsum Books");
+        $bookDto4 = new BookDTO(4, "My best recipes", "Cooking and Stuff");
 
-        $rootDto1 = new ValidRootDTO(1, "Root 1", [
-            1 => $leafDto1, 2 => $leafDto2, 3 => $leafDto3
+        $authorDto1 = new AuthorDTO(1, "Alice Brian", [
+            1 => $bookDto1, 2 => $bookDto2, 3 => $bookDto3
         ]);
-        $rootDto2 = new ValidRootDTO(2, "Root 2", [
-            1 => $leafDto1, 4 => $leafDto4
+        $authorDto2 = new AuthorDTO(2, "Bob Schmo", [
+            1 => $bookDto1, 4 => $bookDto4
         ]);
-        $rootDto5 = new ValidRootDTO(5, "Root 5", []);
-        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2, 5 => $rootDto5];
+        $authorDto5 = new AuthorDTO(5, "Charlie Doe", []);
+        $handmadeResult = [1 => $authorDto1, 2 => $authorDto2, 5 => $authorDto5];
 
         $this->assertSame(
             var_export($flatMapperResults, true),
