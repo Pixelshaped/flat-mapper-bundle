@@ -43,7 +43,7 @@ While using Object-Relational Mapping techniques, this package is not a full-fle
 
 ### Purpose
 
-Its purpose is to sit on top of your Persistence Layer and help you create DTOs for your Business Layer, in the same way you would with the Doctrine `NEW` keyword, except at depth. Other ways to do that generally imply mapping entities to DTOs which is less performant (memory and CPU wise).
+Its purpose is to help you create DTOs the same way you would with the Doctrine `NEW` keyword, except at depth. Other ways to do that generally imply mapping entities to DTOs which is less performant (memory and CPU wise). You can find benchmarks for this package at [Pixelshaped/flat-mapper-benchmark](https://github.com/Pixelshaped/flat-mapper-benchmark).
 
 ## How to use?
 
