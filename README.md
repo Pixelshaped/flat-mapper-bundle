@@ -5,47 +5,21 @@
 
 This bundle aims to solve the problem of building nested DTOs from flat arrays (such as database queries results).
 
-## Introduction
+One of its purposes is to help you create DTOs the same way you would with the Doctrine `NEW` keyword, except at depth. Other ways to do that generally imply mapping entities to DTOs which is less performant (memory and CPU wise). You can find benchmarks for this package at [Pixelshaped/flat-mapper-benchmark](https://github.com/Pixelshaped/flat-mapper-benchmark).
 
-Doctrine [provides a solution](https://www.doctrine-project.org/projects/doctrine-orm/en/2.11/reference/dql-doctrine-query-language.html#new-operator-syntax) to build DTOs directly from a QueryBuilder:
-
-Given a DTO class such as `CustomerDTO`:
-
-```php
-<?php
-class CustomerDTO
-{
-    public function __construct($name, $email, $city, $value = null){ /* ... */ }
-}
-```
-
-Doctrine can execute a query that produces an array `array<CustomerDTO>`:
-
-```php
-<?php
-$query = $em->createQuery('SELECT NEW CustomerDTO(c.name, e.email, a.city) FROM Customer c JOIN c.email e JOIN c.address a');
-$users = $query->getResult(); // array<CustomerDTO>
-```
-
-Unfortunately, if you need to retrieve DTOs with non-scalar properties, such as:
-
-- an array of IDs
-- an array of nested DTOs
-
-then, the solution provided by Doctrine doesn't work. The creation of this bundle arose from that situation. With it, you can do:
-
-```php
-$flatMapper->map(NonScalarCustomerDTO::class, $query->getArrayResult());
-```
-### Naming
-
-While using Object-Relational Mapping techniques, this package is not a full-fledged ORM in the accepted sense of the word, as it only handles the mapping of "flat" data to objects. Hence, the name "Flat Mapper".
-
-### Purpose
-
-Its purpose is to help you create DTOs the same way you would with the Doctrine `NEW` keyword, except at depth. Other ways to do that generally imply mapping entities to DTOs which is less performant (memory and CPU wise). You can find benchmarks for this package at [Pixelshaped/flat-mapper-benchmark](https://github.com/Pixelshaped/flat-mapper-benchmark).
+You can also use it to map SQL queries to objects, it has no dependency on a particular ORM.
 
 ## How to use?
+
+### At a glance
+
+Given a DTO such as [AuthorDTO](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)
+
+```php 
+$result = $flatMapper->map(AuthorDTO::class, $authorRepository->getAuthorsAndTheirBooks());
+```
+
+Will give you an array of `AuthorDTO` hydrated with all their `BookDTO` books (See [complete example](#complete_example)).
 
 ### Installation
 
@@ -107,6 +81,7 @@ This bundle comes with several attributes that you can use to add mapping to you
 - `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
 - `#[ColumnArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
 
+<a name="complete_example"></a>
 ### Hydrating nested DTOs
 
 Given:
@@ -125,7 +100,7 @@ $results = [
     ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 4, 'book_name' => 'My best recipes', 'book_publisher_name' => 'Cooking and Stuff'],
 ];
 
-$flatMapper->map(RootDTO::class, $results);
+$flatMapper->map(AuthorDTO::class, $results);
 ```
 
 Will output:
@@ -289,6 +264,33 @@ Will get you an array of 10 `CustomerWithAddressesDTO` (granted you do have 10 i
 You can use this package without Symfony. Just instantiate the `FlatMapper` class and use its methods.
 
 ## Alternatives
+
+Doctrine [provides a solution](https://www.doctrine-project.org/projects/doctrine-orm/en/2.11/reference/dql-doctrine-query-language.html#new-operator-syntax) to build DTOs directly from a QueryBuilder:
+
+Given a DTO class such as `CustomerDTO`:
+
+```php
+<?php
+class CustomerDTO
+{
+    public function __construct($name, $email, $city, $value = null){ /* ... */ }
+}
+```
+
+Doctrine can execute a query that produces an array `array<CustomerDTO>`:
+
+```php
+<?php
+$query = $em->createQuery('SELECT NEW CustomerDTO(c.name, e.email, a.city) FROM Customer c JOIN c.email e JOIN c.address a');
+$users = $query->getResult(); // array<CustomerDTO>
+```
+
+Unfortunately, if you need to retrieve DTOs with non-scalar properties, such as:
+
+- an array of IDs
+- an array of nested DTOs
+
+then, the solution provided by Doctrine doesn't work. The creation of this bundle arose from that situation.
 
 When I started coding this, I looked for alternatives but found only partial ones:
 
