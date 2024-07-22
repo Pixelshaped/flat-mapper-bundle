@@ -13,6 +13,8 @@ jobs:
     - uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
+        tools: phpunit, composer:v2
+        coverage: xdebug3
     - uses: actions/checkout@v4
 
     - name: Install Dependencies
@@ -20,4 +22,9 @@ jobs:
     - name: PHPStan
       run: vendor/bin/phpstan
     - name: PHPUnit
-      run: vendor/bin/phpunit
+      run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4.0.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

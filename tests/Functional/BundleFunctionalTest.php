@@ -10,6 +10,7 @@ use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
 
+#[CoversClass(FlatMapper::class)]
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
 class BundleFunctionalTest extends TestCase
 {
