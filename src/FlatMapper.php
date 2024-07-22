@@ -158,18 +158,18 @@ class FlatMapper
                     foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
                         if($foreignObjectClassOrIdentifier !== null) {
                             if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
+                                // Handles ReferencesArray attribute
                                 $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
                                 if($row[$foreignIdentifier] !== null) { // As objects are constructed from leafs, this array key has already been tested when the leaf was constructed itself
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
                                 }
                                 $constructorValues[] = [];
-                            } else if (array_key_exists($foreignObjectClassOrIdentifier, $row)) {
+                            } else {
+                                // Handles ColumnArray attribute
                                 if($row[$foreignObjectClassOrIdentifier] !== null) {
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
                                 }
                                 $constructorValues[] = [];
-                            } else {
-                                throw new MappingException($foreignObjectClassOrIdentifier.' is neither a foreign identifier nor a foreign object class.');
                             }
                         } else {
                             if(!array_key_exists($objectProperty, $row)) {
