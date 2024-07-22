@@ -37,11 +37,11 @@ class FlatMapper
         $this->validateMapping = $validateMapping;
     }
 
-    /**
-     * @param class-string $dtoClassName
-     */
     public function createMapping(string $dtoClassName): void
     {
+        if(!class_exists($dtoClassName)) {
+            throw new MappingCreationException($dtoClassName.' is not a valid class name');
+        }
         if(!isset($this->objectsMapping[$dtoClassName])) {
 
             if($this->cacheService !== null) {
@@ -71,11 +71,7 @@ class FlatMapper
 
         $objectIdentifiers = array_merge([$dtoClassName => 'RESERVED'], $objectIdentifiers);
 
-        try {
-            $reflectionClass = new ReflectionClass($dtoClassName);
-        } catch (\ReflectionException $e) {
-            throw new MappingCreationException($e->getMessage(), $e->getCode(), $e);
-        }
+        $reflectionClass = new ReflectionClass($dtoClassName);
 
         $constructor = $reflectionClass->getConstructor();
 

@@ -33,6 +33,14 @@ class FlatMapperTest extends TestCase
         $mapper->createMapping(AuthorDTO::class);
     }
 
+    public function testCreateMappingWrongClassNameAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/An error occurred during mapping creation: ThisIsNotAValidClassString is not a valid class name/");
+        $mapper = new FlatMapper();
+        $mapper->createMapping('ThisIsNotAValidClassString');
+    }
+
     public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
     {
         $this->expectException(MappingCreationException::class);
