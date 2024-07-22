@@ -5,14 +5,8 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArray\ColumnArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
@@ -23,65 +17,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 
 #[CoversClass(FlatMapper::class)]
 #[CoversClass(MappingException::class)]
-#[CoversClass(MappingCreationException::class)]
 class FlatMapperTest extends TestCase
 {
-    public function testCreateMappingWithValidDTOsDoesNotAssert(): void
-    {
-        $this->expectNotToPerformAssertions();
-        $mapper = new FlatMapper();
-        $mapper->createMapping(ColumnArrayDTO::class);
-        $mapper->createMapping(AuthorDTO::class);
-    }
-
-    public function testCreateMappingWrongClassNameAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/An error occurred during mapping creation: ThisIsNotAValidClassString is not a valid class name/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping('ThisIsNotAValidClassString');
-    }
-
-    public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/Several data identifiers are identical/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping(InvalidRootDTO::class);
-    }
-
-    public function testCreateMappingWithTooManyIdentifiersAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping(RootDTOWithTooManyIdentifiers::class);
-    }
-
-    public function testCreateMappingWithNoIdentifierAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping(RootDTOWithNoIdentifier::class);
-    }
-
-    public function testCreateMappingWithNoConstructorAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/does not have a constructor/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping(RootDTOWithoutConstructor::class);
-    }
-
-    public function testCreateMappingWithEmptyClassIdentifierAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
-        $mapper = new FlatMapper();
-        $mapper->createMapping(RootDTOWithEmptyClassIdentifier::class);
-    }
-
     public function testMappingDataWithMissingIdentifierPropertyAsserts(): void
     {
         $this->expectException(MappingException::class);
@@ -133,6 +70,20 @@ class FlatMapperTest extends TestCase
             ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group'],
             ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys'],
             ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group'],
+        ];
+
+        ((new FlatMapper())->map(AuthorDTO::class, $results));
+    }
+
+    public function testMappingDataWithBadConstructorTypeAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/An error occurred during mapping: Cannot construct object/');
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => null, 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => null, 'book_publisher_name' => 'TravelBooks'],
         ];
 
         ((new FlatMapper())->map(AuthorDTO::class, $results));
