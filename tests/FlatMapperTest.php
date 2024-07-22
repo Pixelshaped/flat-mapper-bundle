@@ -5,6 +5,8 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
+use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
+use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
@@ -18,7 +20,6 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
-use RuntimeException;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
 #[CoversMethod(FlatMapper::class, 'map')]
@@ -34,7 +35,7 @@ class FlatMapperTest extends TestCase
 
     public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/Several data identifiers are identical/");
         $mapper = new FlatMapper();
         $mapper->createMapping(InvalidRootDTO::class);
@@ -42,7 +43,7 @@ class FlatMapperTest extends TestCase
 
     public function testCreateMappingWithTooManyIdentifiersAsserts(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
         $mapper = new FlatMapper();
         $mapper->createMapping(RootDTOWithTooManyIdentifiers::class);
@@ -50,7 +51,7 @@ class FlatMapperTest extends TestCase
 
     public function testCreateMappingWithNoIdentifierAsserts(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
         $mapper = new FlatMapper();
         $mapper->createMapping(RootDTOWithNoIdentifier::class);
@@ -58,7 +59,7 @@ class FlatMapperTest extends TestCase
 
     public function testCreateMappingWithNoConstructorAsserts(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not have a constructor/");
         $mapper = new FlatMapper();
         $mapper->createMapping(RootDTOWithoutConstructor::class);
@@ -66,10 +67,66 @@ class FlatMapperTest extends TestCase
 
     public function testCreateMappingWithEmptyClassIdentifierAsserts(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
         $mapper = new FlatMapper();
         $mapper->createMapping(RootDTOWithEmptyClassIdentifier::class);
+    }
+
+    public function testMappingDataWithMissingIdentifierPropertyAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: author_id/');
+
+        $results = [
+            ['author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+            ['author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+        ];
+
+        ((new FlatMapper())->map(AuthorDTO::class, $results));
+    }
+
+    public function testMappingDataWithMissingForeignIdentifierPropertyAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: book_id/');
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+        ];
+
+        ((new FlatMapper())->map(AuthorDTO::class, $results));
+    }
+
+    public function testMappingDataWithBadlyNamedPropertyAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: book_publisher_name/');
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'badly_named_publisher_field' => 'Lorem Press'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
+        ];
+
+        ((new FlatMapper())->map(AuthorDTO::class, $results));
+    }
+
+    public function testMappingDataWithMissingPropertyAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: book_publisher_name/');
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group'],
+        ];
+
+        ((new FlatMapper())->map(AuthorDTO::class, $results));
     }
 
     public function testMapValidNestedDTOs(): void
