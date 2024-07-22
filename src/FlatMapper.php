@@ -145,7 +145,7 @@ class FlatMapper
     public function map(string $dtoClassName, iterable $data): array {
 
         $this->createMapping($dtoClassName);
-        
+
         $objectsMap = [];
         $referencesMap = [];
         foreach ($data as $row) {
@@ -206,12 +206,8 @@ class FlatMapper
             foreach ($references as $identifier => $foreignObjects) {
                 foreach ($foreignObjects as $mappedProperty => $foreignObjectIdentifiers) {
                     if (isset($objectsMap[$objectClass][$identifier])) {
-                        try {
-                            $reflectionClass = new ReflectionClass($objectClass);
-                            $arrayProperty = $reflectionClass->getProperty($mappedProperty);
-                        } catch (\ReflectionException $e) {
-                            throw new MappingException($e->getMessage(), $e->getCode(), $e);
-                        }
+                        $reflectionClass = new ReflectionClass($objectClass);
+                        $arrayProperty = $reflectionClass->getProperty($mappedProperty);
                         $arrayProperty->setValue($objectsMap[$objectClass][$identifier], $foreignObjectIdentifiers);
                     }
                 }
