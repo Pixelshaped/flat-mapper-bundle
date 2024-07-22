@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests;
 
-use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
@@ -21,8 +21,9 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 
-#[CoversMethod(FlatMapper::class, 'createMapping')]
-#[CoversMethod(FlatMapper::class, 'map')]
+#[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingException::class)]
+#[CoversClass(MappingCreationException::class)]
 class FlatMapperTest extends TestCase
 {
     public function testCreateMappingWithValidDTOsDoesNotAssert(): void

@@ -3,3 +3,4 @@
 /.phpunit.cache/
 /var/
 composer.lock
+coverage.xml
