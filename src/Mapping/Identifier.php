@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelshaped\FlatMapperBundle\Attributes;
+namespace Pixelshaped\FlatMapperBundle\Mapping;
 
 use Attribute;
 
@@ -9,6 +9,6 @@ use Attribute;
 final readonly class Identifier
 {
     public function __construct(
-        public ?string $inboundPropertyName = null
+        public ?string $mappedPropertyName = null
     ) {}
 }

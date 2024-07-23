@@ -7,12 +7,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArray\ColumnArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\AuthorDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\BookDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 
 #[CoversClass(FlatMapper::class)]
@@ -122,7 +122,7 @@ class FlatMapperTest extends TestCase
         );
     }
 
-    public function testMapValidColumnArrayDTO(): void
+    public function testMapValidScalarArrayDTO(): void
     {
         $results = [
             ['object1_id' => 1, 'object1_name' => 'Root 1', 'object2_id' => 1],
@@ -133,11 +133,11 @@ class FlatMapperTest extends TestCase
             ['object1_id' => 7, 'object1_name' => 'Root 7', 'object2_id' => null],
         ];
 
-        $flatMapperResults = ((new FlatMapper())->map(ColumnArrayDTO::class, $results));
+        $flatMapperResults = ((new FlatMapper())->map(ScalarArrayDTO::class, $results));
 
-        $rootDto1 = new ColumnArrayDTO(1, "Root 1", [1, 2, 3]);
-        $rootDto2 = new ColumnArrayDTO(2, "Root 2", [1, 4]);
-        $rootDto7 = new ColumnArrayDTO(7, "Root 7", []);
+        $rootDto1 = new ScalarArrayDTO(1, "Root 1", [1, 2, 3]);
+        $rootDto2 = new ScalarArrayDTO(2, "Root 2", [1, 4]);
+        $rootDto7 = new ScalarArrayDTO(7, "Root 7", []);
         $handmadeResult = [1 => $rootDto1, 2 => $rootDto2, 7 => $rootDto7];
 
         $this->assertSame(
@@ -215,7 +215,7 @@ class FlatMapperTest extends TestCase
 
     public function testMapEmptyData(): void
     {
-        $flatMapperResults = ((new FlatMapper())->map(ColumnArrayDTO::class, []));
+        $flatMapperResults = ((new FlatMapper())->map(ScalarArrayDTO::class, []));
 
         $this->assertSame(
             var_export($flatMapperResults, true),

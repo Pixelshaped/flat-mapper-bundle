@@ -3,4 +3,4 @@
 /.phpunit.cache/
 /var/
 composer.lock
-coverage.xml
+clover.xml
