@@ -20,7 +20,7 @@
             <directory>src</directory>
         </include>
         <exclude>
-            <directory>src/Attributes</directory>
+            <directory>src/Mapping</directory>
         </exclude>
     </source>
 
