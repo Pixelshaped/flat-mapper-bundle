@@ -2,8 +2,8 @@
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex;
 
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
-use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
 // We don't intend to use the product_id property, so we use the Identifier attribute as
 // a class attribute. It will then only be used by FlatMapper internally to keep track
@@ -12,13 +12,13 @@ use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
 class ProductDTO
 {
     public function __construct(
-        #[InboundPropertyName('product_sku')]
+        #[Scalar('product_sku')]
         private int $sku,
-        #[InboundPropertyName('product_weight')]
+        #[Scalar('product_weight')]
         private float $weight,
-        #[InboundPropertyName('product_price')]
+        #[Scalar('product_price')]
         private int $price,
-        #[InboundPropertyName('product_quantity')]
+        #[Scalar('product_quantity')]
         private int $quantity,
     ) {}
 

@@ -13,8 +13,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIde
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ColumnArray\ColumnArrayDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferencesArray\AuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
@@ -26,21 +26,23 @@ class FlatMapperCreateMappingTest extends TestCase
     public function testCreateMappingWithValidDTOsDoesNotAssert(): void
     {
         $this->expectNotToPerformAssertions();
-        (new FlatMapper())->createMapping(ColumnArrayDTO::class);
+        (new FlatMapper())->createMapping(ScalarArrayDTO::class);
         (new FlatMapper())->createMapping(AuthorDTO::class);
     }
 
     public function testCreateMappingWithCacheServiceDoesNotAssert(): void
     {
         $flatMapper = new FlatMapper();
+
+        // The intention is not to test the createMappingRecursive private method
+        // but to dynamically give the CacheInterface mock a proper return value.
         $reflectionMethod = (new \ReflectionClass(FlatMapper::class))->getMethod('createMappingRecursive');
         $reflectionMethod->setAccessible(true);
-
         $cacheInterface = $this->createMock(CacheInterface::class);
         $cacheInterface->expects($this->once())->method('get')->willReturn(
             $reflectionMethod->invoke($flatMapper, AuthorDTO::class)
         );
-        
+
         $flatMapper->setCacheService($cacheInterface);
         $flatMapper->createMapping(AuthorDTO::class);
     }

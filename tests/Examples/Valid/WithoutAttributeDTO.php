@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid;
 
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 
 class WithoutAttributeDTO
 {

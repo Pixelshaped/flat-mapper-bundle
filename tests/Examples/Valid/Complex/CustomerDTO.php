@@ -2,19 +2,19 @@
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex;
 
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
-use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
-use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
 class CustomerDTO
 {
     public function __construct(
         #[Identifier('customer_id')]
         private int $id,
-        #[InboundPropertyName('customer_name')]
+        #[Scalar('customer_name')]
         private string $name,
         /** @var array<InvoiceDTO> */
-        #[ReferencesArray(InvoiceDTO::class)]
+        #[ReferenceArray(InvoiceDTO::class)]
         private array $invoices,
     ) {}
 
