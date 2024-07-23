@@ -1,20 +1,20 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid;
+namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray;
 
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
-class LeafDTO
+class BookDTO
 {
     public function __construct(
         #[Identifier]
-        #[Scalar('object1_id')]
+        #[Scalar('book_id')]
         public int $id,
-        #[Scalar('object2_name')]
+        #[Scalar('book_name')]
         public string $name,
-        #[Scalar('object2_value')]
-        public string $value,
+        #[Scalar('book_publisher_name')]
+        public string $publisherName,
     ) {}
 }

@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelshaped\FlatMapperBundle\Attributes;
+namespace Pixelshaped\FlatMapperBundle\Mapping;
 
 use Attribute;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final readonly class InboundPropertyName
+final readonly class Scalar
 {
     public function __construct(
-        public string $inboundPropertyName
+        public string $mappedPropertyName
     ) {}
 }

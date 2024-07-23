@@ -23,4 +23,10 @@
             <directory>src/Attributes</directory>
         </exclude>
     </source>
+
+    <coverage>
+        <report>
+            <clover outputFile="clover.xml"/>
+        </report>
+    </coverage>
 </phpunit>

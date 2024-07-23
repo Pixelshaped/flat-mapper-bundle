@@ -3,12 +3,12 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle;
 
-use Pixelshaped\FlatMapperBundle\Attributes\ColumnArray;
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
-use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
-use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
+use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
 use ReflectionClass;
 use Symfony\Contracts\Cache\CacheInterface;
 
@@ -95,11 +95,11 @@ class FlatMapper
             $propertyName = $reflectionParameter->getName();
             $isIdentifier = false;
             foreach ($reflectionParameter->getAttributes() as $attribute) {
-                if ($attribute->getName() === ReferencesArray::class) {
+                if ($attribute->getName() === ReferenceArray::class) {
                     $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
                     continue 2;
-                } else if ($attribute->getName() === ColumnArray::class) {
+                } else if ($attribute->getName() === ScalarArray::class) {
                     $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
@@ -108,7 +108,7 @@ class FlatMapper
                     if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
                         $propertyName = $attribute->getArguments()[0];
                     }
-                } else if ($attribute->getName() === InboundPropertyName::class) {
+                } else if ($attribute->getName() === Scalar::class) {
                     $propertyName = $attribute->getArguments()[0];
                 }
             }
@@ -158,14 +158,14 @@ class FlatMapper
                     foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
                         if($foreignObjectClassOrIdentifier !== null) {
                             if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
-                                // Handles ReferencesArray attribute
+                                // Handles ReferenceArray attribute
                                 $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
                                 if($row[$foreignIdentifier] !== null) { // As objects are constructed from leafs, this array key has already been tested when the leaf was constructed itself
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
                                 }
                                 $constructorValues[] = [];
                             } else {
-                                // Handles ColumnArray attribute
+                                // Handles ScalarArray attribute
                                 if($row[$foreignObjectClassOrIdentifier] !== null) {
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
                                 }

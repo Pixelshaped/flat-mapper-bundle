@@ -2,21 +2,21 @@
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex;
 
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
-use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
-use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
 class InvoiceDTO
 {
     public function __construct(
         #[Identifier('invoice_id')]
         private int $id,
-        #[InboundPropertyName('invoice_vat')]
+        #[Scalar('invoice_vat')]
         private string $vat,
-        #[InboundPropertyName('invoice_address')]
+        #[Scalar('invoice_address')]
         private string $address,
         /** @var array<ProductDTO> */
-        #[ReferencesArray(ProductDTO::class)]
+        #[ReferenceArray(ProductDTO::class)]
         private array $productDTOS,
     ) {}
 

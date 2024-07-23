@@ -14,7 +14,7 @@ You can also use it to map SQL queries to objects, it has no dependency on a par
 
 ### At a glance
 
-Given a DTO such as [AuthorDTO](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)
+Given a DTO such as [AuthorDTO](tests/Examples/Valid/ReferenceArray/AuthorDTO.php)
 
 ```php 
 $result = $flatMapper->map(AuthorDTO::class, $authorRepository->getAuthorsAndTheirBooks());
@@ -77,18 +77,18 @@ This bundle comes with several attributes that you can use to add mapping to you
   - Use it as a Class attribute if you don't intend to use the property yourself ([see example](tests/Examples/Valid/Complex/ProductDTO.php)). It will then only be used internally and not be mapped to your DTO.
   - Use it as a Property attribute if you have some use for it ([see example](tests/Examples/Valid/Complex/CustomerDTO.php)).
   - Specify the mapped property name directly on the attribute ([see example](tests/Examples/Valid/Complex/InvoiceDTO.php)). This is mandatory when used as a Class attribute.
-  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)).
-- `#[InboundProperty("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set ([see example](tests/Examples/Valid/WithoutAttributeDTO.php)).
-- `#[ReferencesArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
-- `#[ColumnArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties (such as IDs).
+  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferenceArray/AuthorDTO.php)).
+- `#[Scalar("mapped_property_name")]`: The name of the key on the associative arrays contained by your result set. This is optional if your DTO's property names are already matching the result set ([see example](tests/Examples/Valid/WithoutAttributeDTO.php)).
+- `#[ReferenceArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
+- `#[ScalarArray("mapped_property_name")]` the column `mapped_property_name` of your result set will be mapped as an array of scalar properties, such as IDs ([see example](tests/Examples/Valid/ScalarArray/ScalarArrayDTO.php)).
 
 <a name="complete_example"></a>
 ### Hydrating nested DTOs
 
 Given:
 
-- [AuthorDTO](tests/Examples/Valid/ReferencesArray/AuthorDTO.php)
-- [BookDTO](tests/Examples/Valid/ReferencesArray/BookDTO.php)
+- [AuthorDTO](tests/Examples/Valid/ReferenceArray/AuthorDTO.php)
+- [BookDTO](tests/Examples/Valid/ReferenceArray/BookDTO.php)
 
 Calling FlatMapper with the following result set:
 
@@ -160,7 +160,7 @@ Array
 
 ### Hydrating Column Arrays
 
-Given [ColumnArrayDTO](tests/Examples/Valid/ColumnArray/ColumnArrayDTO.php)
+Given [ScalarArrayDTO](tests/Examples/Valid/ScalarArray/ScalarArrayDTO.php)
 
 Calling FlatMapper with the following result set:
 ```php
@@ -178,7 +178,7 @@ Will output:
 ```php
 Array
 (
-    [1] => ColumnArrayDTO Object
+    [1] => ScalarArrayDTO Object
         (
             [id] => 1
             [name] => Root 1
@@ -189,7 +189,7 @@ Array
                     [2] => 3
                 )
         )
-    [2] => ColumnArrayDTO Object
+    [2] => ScalarArrayDTO Object
         (
             [id] => 2
             [name] => Root 2
@@ -212,11 +212,11 @@ class CustomerDTO
 {
     public function __construct(
         #[Identifier]
-        #[InboundPropertyName('customer_id')]
+        #[Scalar('customer_id')]
         public int $id,
-        #[InboundPropertyName('customer_name')]
+        #[Scalar('customer_name')]
         public string $name,
-        #[ColumnArray('shopping_list_id')]
+        #[ScalarArray('shopping_list_id')]
         public array $shoppingListIds
     )
 }

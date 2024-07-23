@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid;
 
-use Pixelshaped\FlatMapperBundle\Attributes\Identifier;
-use Pixelshaped\FlatMapperBundle\Attributes\InboundPropertyName;
-use Pixelshaped\FlatMapperBundle\Attributes\ReferencesArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
 class RootDTO
 {
@@ -14,11 +14,11 @@ class RootDTO
      */
     public function __construct(
         #[Identifier]
-        #[InboundPropertyName('object1_id')]
+        #[Scalar('object1_id')]
         public int $id,
-        #[InboundPropertyName('object1_name')]
+        #[Scalar('object1_name')]
         public string $name,
-        #[ReferencesArray(LeafDTO::class)]
+        #[ReferenceArray(LeafDTO::class)]
         public array $leafs,
     ) {}
 }
