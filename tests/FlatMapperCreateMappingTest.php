@@ -12,9 +12,11 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDT
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithReadonlyClassModifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarDTOWithReadonlyClassModifier;
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
@@ -66,6 +68,19 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
         (new FlatMapper())->createMapping(RootDTOWithTooManyIdentifiers::class);
+    }
+
+    public function testCreateMappingWithReadonlyModifierOnNonScalarDtoAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/cannot be readonly as it is non-scalar and/");
+        (new FlatMapper())->createMapping(RootDTOWithReadonlyClassModifier::class);
+    }
+
+    public function testCreateMappingWithReadonlyModifierOnScalarDtoSucceeds(): void
+    {
+        $this->expectNotToPerformAssertions();
+        (new FlatMapper())->createMapping(ScalarDTOWithReadonlyClassModifier::class);
     }
 
     public function testCreateMappingWithNoIdentifierAsserts(): void

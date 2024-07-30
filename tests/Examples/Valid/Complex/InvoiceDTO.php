@@ -17,7 +17,7 @@ class InvoiceDTO
         private string $address,
         /** @var array<ProductDTO> */
         #[ReferenceArray(ProductDTO::class)]
-        private array $productDTOS,
+        private array $products,
     ) {}
 
     public function getId(): int
@@ -38,16 +38,16 @@ class InvoiceDTO
     /**
      * @return array<ProductDTO>
      */
-    public function getProductDTOS(): array
+    public function getProducts(): array
     {
-        return $this->productDTOS;
+        return $this->products;
     }
 
     public function getTotalWeight(): float
     {
         $totalWeight = 0;
-        foreach ($this->getProductDTOS() as $productDTO) {
-            $totalWeight += $productDTO->getTotalWeight();
+        foreach ($this->getProducts() as $product) {
+            $totalWeight += $product->getTotalWeight();
         }
         return $totalWeight;
     }
@@ -55,8 +55,8 @@ class InvoiceDTO
     public function getTotalPrice(): int
     {
         $totalPrice = 0;
-        foreach ($this->getProductDTOS() as $productDTO) {
-            $totalPrice += $productDTO->getTotalPrice();
+        foreach ($this->getProducts() as $product) {
+            $totalPrice += $product->getTotalPrice();
         }
         return $totalPrice;
     }

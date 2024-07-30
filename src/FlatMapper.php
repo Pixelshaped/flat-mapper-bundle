@@ -10,9 +10,10 @@ use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
 use ReflectionClass;
+use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
 
-class FlatMapper
+final class FlatMapper
 {
 
     /**
@@ -95,12 +96,16 @@ class FlatMapper
             $propertyName = $reflectionParameter->getName();
             $isIdentifier = false;
             foreach ($reflectionParameter->getAttributes() as $attribute) {
-                if ($attribute->getName() === ReferenceArray::class) {
+                if ($attribute->getName() === ReferenceArray::class || $attribute->getName() === ScalarArray::class) {
+                    if($this->validateMapping) {
+                        if((new ReflectionProperty($dtoClassName, $propertyName))->isReadOnly()) {
+                            throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
+                        }
+                    }
                     $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
-                    $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
-                    continue 2;
-                } else if ($attribute->getName() === ScalarArray::class) {
-                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
+                    if($attribute->getName() === ReferenceArray::class) {
+                        $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
+                    }
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
                     $identifiersCount++;
@@ -160,17 +165,16 @@ class FlatMapper
                             if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
                                 // Handles ReferenceArray attribute
                                 $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
-                                if($row[$foreignIdentifier] !== null) { // As objects are constructed from leafs, this array key has already been tested when the leaf was constructed itself
+                                if($row[$foreignIdentifier] !== null) {
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
                                 }
-                                $constructorValues[] = [];
                             } else {
                                 // Handles ScalarArray attribute
                                 if($row[$foreignObjectClassOrIdentifier] !== null) {
                                     $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
                                 }
-                                $constructorValues[] = [];
                             }
+                            $constructorValues[] = [];
                         } else {
                             if(!array_key_exists($objectProperty, $row)) {
                                 throw new MappingException('Data does not contain required property: ' . $objectProperty);
@@ -179,11 +183,10 @@ class FlatMapper
                         }
                     }
                     try {
-                        $dtoInstance = new $objectClass(...$constructorValues);
+                        $objectsMap[$objectClass][$row[$identifier]] = new $objectClass(...$constructorValues);
                     } catch (\TypeError $e) {
                         throw new MappingException('Cannot construct object: '.$e->getMessage());
                     }
-                    $objectsMap[$objectClass][$row[$identifier]] = $dtoInstance;
                 }
             }
         }
@@ -206,9 +209,8 @@ class FlatMapper
             foreach ($references as $identifier => $foreignObjects) {
                 foreach ($foreignObjects as $mappedProperty => $foreignObjectIdentifiers) {
                     if (isset($objectsMap[$objectClass][$identifier])) {
-                        $reflectionClass = new ReflectionClass($objectClass);
-                        $arrayProperty = $reflectionClass->getProperty($mappedProperty);
-                        $arrayProperty->setValue($objectsMap[$objectClass][$identifier], $foreignObjectIdentifiers);
+                        (new ReflectionProperty($objectClass, $mappedProperty))
+                            ->setValue($objectsMap[$objectClass][$identifier], $foreignObjectIdentifiers);
                     }
                 }
             }
