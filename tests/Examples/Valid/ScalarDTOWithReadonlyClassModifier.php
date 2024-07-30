@@ -5,7 +5,6 @@ namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid;
 
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\LeafDTO;
 
 /**
  * You can use a readonly property/class modifier on your scalar DTOs as FlatMapper's object linker
@@ -13,9 +12,6 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\LeafDTO;
  */
 readonly class ScalarDTOWithReadonlyClassModifier
 {
-    /**
-     * @param array<LeafDTO> $leafs
-     */
     public function __construct(
         #[Identifier]
         #[Scalar('object1_id')]
