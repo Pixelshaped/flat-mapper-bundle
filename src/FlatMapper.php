@@ -65,7 +65,7 @@ final class FlatMapper
      * @param array<class-string, array<int|string, null|string>>|null $objectsMapping
      * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
      */
-    private function createMappingRecursive(string $dtoClassName, array& $objectIdentifiers = null, array& $objectsMapping = null): array
+    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null): array
     {
         if($objectIdentifiers === null) $objectIdentifiers = [];
         if($objectsMapping === null) $objectsMapping = [];
