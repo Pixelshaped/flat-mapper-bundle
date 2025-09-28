@@ -7,6 +7,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\AuthorDTO as ClassAttributesAuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as ClassAttributesBookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
@@ -91,16 +93,7 @@ class FlatMapperTest extends TestCase
 
     public function testMapValidNestedDTOs(): void
     {
-        $results = [
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 3, 'book_name' => 'Coding on the road', 'book_publisher_name' => 'Ipsum Books'],
-            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
-            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 4, 'book_name' => 'My best recipes', 'book_publisher_name' => 'Cooking and Stuff'],
-            ['author_id' => 5, 'author_name' => 'Charlie Doe', 'book_id' => null, 'book_name' => null, 'book_publisher_name' => null],
-        ];
-
-        $flatMapperResults = ((new FlatMapper())->map(AuthorDTO::class, $results));
+        $flatMapperResults = ((new FlatMapper())->map(AuthorDTO::class, $this->getResultsForNestedDTOs()));
 
         $bookDto1 = new BookDTO(1, "Travelling as a group", "TravelBooks");
         $bookDto2 = new BookDTO(2, "My journeys", "Lorem Press");
@@ -221,5 +214,41 @@ class FlatMapperTest extends TestCase
             var_export($flatMapperResults, true),
             var_export([], true)
         );
+    }
+
+    public function testMapNestedDTOsWithClassAttributes(): void
+    {
+        $mappedResults = (new FlatMapper())
+            ->map(ClassAttributesAuthorDTO::class, $this->getResultsForNestedDTOs());
+
+        $bookDto1 = new ClassAttributesBookDTO(1, "Travelling as a group", "TravelBooks");
+        $bookDto2 = new ClassAttributesBookDTO(2, "My journeys", "Lorem Press");
+        $bookDto3 = new ClassAttributesBookDTO(3, "Coding on the road", "Ipsum Books");
+        $bookDto4 = new ClassAttributesBookDTO(4, "My best recipes", "Cooking and Stuff");
+
+        $authorDto1 = new ClassAttributesAuthorDTO(1, "Alice Brian", [
+            1 => $bookDto1, 2 => $bookDto2, 3 => $bookDto3
+        ]);
+        $authorDto2 = new ClassAttributesAuthorDTO(2, "Bob Schmo", [
+            1 => $bookDto1, 4 => $bookDto4
+        ]);
+        $authorDto5 = new ClassAttributesAuthorDTO(5, "Charlie Doe", []);
+
+        $this::assertEquals(
+            $mappedResults,
+            [1 => $authorDto1, 2 => $authorDto2, 5 => $authorDto5]
+        );
+    }
+
+    private function getResultsForNestedDTOs(): array
+    {
+        return [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'book_publisher_name' => 'Lorem Press'],
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 3, 'book_name' => 'Coding on the road', 'book_publisher_name' => 'Ipsum Books'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 4, 'book_name' => 'My best recipes', 'book_publisher_name' => 'Cooking and Stuff'],
+            ['author_id' => 5, 'author_name' => 'Charlie Doe', 'book_id' => null, 'book_name' => null, 'book_publisher_name' => null],
+        ];
     }
 }
