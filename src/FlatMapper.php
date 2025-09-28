@@ -5,7 +5,9 @@ namespace Pixelshaped\FlatMapperBundle;
 
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
+use Pixelshaped\FlatMapperBundle\Mapping\Camelize;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\NamePrefix;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
@@ -81,28 +83,41 @@ final class FlatMapper
         }
 
         $identifiersCount = 0;
+        $namePrefix       = '';
+        $camelize         = false;
 
-        $classIdentifierAttributes = $reflectionClass->getAttributes(Identifier::class);
-        if(!empty($classIdentifierAttributes)) {
-            if(isset($classIdentifierAttributes[0]->getArguments()[0]) && $classIdentifierAttributes[0]->getArguments()[0] !== null) {
-                $objectIdentifiers[$dtoClassName] = $classIdentifierAttributes[0]->getArguments()[0];
-                $identifiersCount++;
-            } else {
-                throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
+        foreach ($reflectionClass->getAttributes() as $attribute) {
+            switch ($attribute->getName()) {
+                case Identifier::class:
+                    if (isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
+                        $objectIdentifiers[$dtoClassName] = $attribute->getArguments()[0];
+                        $identifiersCount++;
+                    } else {
+                        throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
+                    }
+                    break;
+
+                case NamePrefix::class:
+                    $namePrefix = $attribute->getArguments()[0];
+                    break;
+
+                case Camelize::class:
+                    $camelize = true;
             }
         }
 
         foreach ($constructor->getParameters() as $reflectionParameter) {
-            $propertyName = $reflectionParameter->getName();
+            $originalName = $reflectionParameter->getName();
+            $propertyName = $this->manglePropertyName($originalName, $namePrefix, $camelize);
             $isIdentifier = false;
             foreach ($reflectionParameter->getAttributes() as $attribute) {
                 if ($attribute->getName() === ReferenceArray::class || $attribute->getName() === ScalarArray::class) {
                     if($this->validateMapping) {
-                        if((new ReflectionProperty($dtoClassName, $propertyName))->isReadOnly()) {
-                            throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
+                        if((new ReflectionProperty($dtoClassName, $originalName))->isReadOnly()) {
+                            throw new MappingCreationException($reflectionClass->getName().': property '.$originalName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
                         }
                     }
-                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
+                    $objectsMapping[$dtoClassName][$originalName] = (string)$attribute->getArguments()[0];
                     if($attribute->getName() === ReferenceArray::class) {
                         $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
                     }
@@ -139,6 +154,18 @@ final class FlatMapper
             'objectIdentifiers' => $objectIdentifiers,
             'objectsMapping' => $objectsMapping
         ];
+    }
+
+    private function manglePropertyName(string $propertyName, string $prefix, bool $camelize): string
+    {
+        if ($camelize) {
+            $propertyName = strtolower(preg_replace(
+                ['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'],
+                '\1_\2',
+                $propertyName
+            ));
+        }
+        return $prefix . $propertyName;
     }
 
     /**
