@@ -6,9 +6,11 @@ namespace Pixelshaped\FlatMapperBundle;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
+use Error;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -81,19 +83,39 @@ final class FlatMapper
         }
 
         $identifiersCount = 0;
+        $transformation   = null;
 
-        $classIdentifierAttributes = $reflectionClass->getAttributes(Identifier::class);
-        if(!empty($classIdentifierAttributes)) {
-            if(isset($classIdentifierAttributes[0]->getArguments()[0]) && $classIdentifierAttributes[0]->getArguments()[0] !== null) {
-                $objectIdentifiers[$dtoClassName] = $classIdentifierAttributes[0]->getArguments()[0];
-                $identifiersCount++;
-            } else {
-                throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
+        foreach ($reflectionClass->getAttributes() as $attribute) {
+            switch ($attribute->getName()) {
+                case Identifier::class:
+                    if (isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
+                        $objectIdentifiers[$dtoClassName] = $attribute->getArguments()[0];
+                        $identifiersCount++;
+                    } else {
+                        throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
+                    }
+                    break;
+
+                case NameTransformation::class:
+                    try {
+                        /** @var NameTransformation $transformation */
+                        $transformation = $attribute->newInstance();
+                    } catch (Error $e) {
+                        throw new MappingCreationException(sprintf(
+                            'Invalid NameTransformation attribute for %s:%s%s',
+                            $dtoClassName,
+                            PHP_EOL,
+                            $e->getMessage()
+                        ));
+                    }
             }
         }
 
         foreach ($constructor->getParameters() as $reflectionParameter) {
             $propertyName = $reflectionParameter->getName();
+            $columnName   = $transformation
+                ? $this->transformPropertyName($propertyName, $transformation)
+                : $propertyName;
             $isIdentifier = false;
             foreach ($reflectionParameter->getAttributes() as $attribute) {
                 if ($attribute->getName() === ReferenceArray::class || $attribute->getName() === ScalarArray::class) {
@@ -111,18 +133,18 @@ final class FlatMapper
                     $identifiersCount++;
                     $isIdentifier = true;
                     if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $propertyName = $attribute->getArguments()[0];
+                        $columnName = $attribute->getArguments()[0];
                     }
                 } else if ($attribute->getName() === Scalar::class) {
-                    $propertyName = $attribute->getArguments()[0];
+                    $columnName = $attribute->getArguments()[0];
                 }
             }
 
             if ($isIdentifier) {
-                $objectIdentifiers[$dtoClassName] = $propertyName;
+                $objectIdentifiers[$dtoClassName] = $columnName;
             }
 
-            $objectsMapping[$dtoClassName][$propertyName] = null;
+            $objectsMapping[$dtoClassName][$columnName] = null;
         }
 
         if($this->validateMapping) {
@@ -139,6 +161,18 @@ final class FlatMapper
             'objectIdentifiers' => $objectIdentifiers,
             'objectsMapping' => $objectsMapping
         ];
+    }
+
+    private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
+    {
+        if ($transformation->camelize) {
+            $propertyName = strtolower(preg_replace(
+                ['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'],
+                '\1_\2',
+                $propertyName
+            ) ?? $propertyName);
+        }
+        return $transformation->removePrefix . $propertyName;
     }
 
     /**
