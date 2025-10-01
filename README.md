@@ -82,14 +82,15 @@ This bundle comes with several attributes that you can use to add mapping to you
 - `#[ReferenceArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
 - `#[ScalarArray("mapped_property_name")]` The column `mapped_property_name` of your result set will be mapped as an array of scalar properties, such as IDs ([see example](tests/Examples/Valid/ScalarArray/ScalarArrayDTO.php)).
 
-If the mapping between result columns and DTO properties is consistent, the following class attributes can be used
-instead of adding `#[Scalar(...)]` to each property:
+If the mapping between result columns and DTO properties is consistent, you can use the `#[NameTransformation]`
+class attribute instead of adding `#[Scalar(...)]` to each property:
 
-- `#[NamePrefix('foo_')]`: the columns named `foo_bar` and `foo_baz` will be mapped to `$bar` and `$baz` properties
-  of a DTO class.
-- `#[Camelize]`: the column with snake-case name `foo_bar` will be mapped to `$fooBar` property.
-- If the above two attributes are both present, then `foo_bar_baz` result column will be mapped to `$barBaz` property.
-- Adding `#[Scalar]` attribute to a specific property will override mapping set up on class level.
+- `#[NameTransformation(removePrefix: 'foo_')]`: the columns named `foo_bar` and `foo_baz` will be mapped to 
+  `$bar` and `$baz` properties of a DTO class.
+- `#[NameTransformation(camelize: true)]`: the column with snake-case name `foo_bar` will be mapped to `$fooBar` property.
+- If both of the above rules are enabled, then `foo_bar_baz` result column will be mapped to `$barBaz` property.
+- Adding a `#[Scalar]` attribute or an `#[Identifier]` attribute with explicitly given name to a property will override
+  mapping set up on class level.
 
 <a name="complete_example"></a>
 ### Hydrating nested DTOs
@@ -101,8 +102,8 @@ Given either
 
 or
 
-- [AuthorDTO](tests/Examples/Valid/ClassAttributes/AuthorDTO.php) (with class-level attributes)
-- [BookDTO](tests/Examples/Valid/ClassAttributes/BookDTO.php) (with class-level attributes)
+- [AuthorDTO](tests/Examples/Valid/ClassAttributes/AuthorDTO.php) (with `NameTransformation`)
+- [BookDTO](tests/Examples/Valid/ClassAttributes/BookDTO.php) (with `NameTransformation`)
 
 
 Calling FlatMapper with the following result set:
