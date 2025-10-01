@@ -3,12 +3,10 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes;
 
-use Pixelshaped\FlatMapperBundle\Mapping\Camelize;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
-use Pixelshaped\FlatMapperBundle\Mapping\NamePrefix;
+use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 
-#[NamePrefix('book_')]
-#[Camelize]
+#[NameTransformation(removePrefix: 'book_', camelize: true)]
 class BookDTO
 {
     public function __construct(

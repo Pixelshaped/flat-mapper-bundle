@@ -4,10 +4,10 @@ declare(strict_types=1);
 namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes;
 
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
-use Pixelshaped\FlatMapperBundle\Mapping\NamePrefix;
+use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 
-#[NamePrefix('author_')]
+#[NameTransformation(removePrefix: 'author_')]
 class AuthorDTO
 {
     /**

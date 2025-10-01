@@ -5,12 +5,12 @@ namespace Pixelshaped\FlatMapperBundle;
 
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
-use Pixelshaped\FlatMapperBundle\Mapping\Camelize;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
-use Pixelshaped\FlatMapperBundle\Mapping\NamePrefix;
+use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
+use Error;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -83,8 +83,7 @@ final class FlatMapper
         }
 
         $identifiersCount = 0;
-        $namePrefix       = '';
-        $camelize         = false;
+        $transformation   = null;
 
         foreach ($reflectionClass->getAttributes() as $attribute) {
             switch ($attribute->getName()) {
@@ -97,27 +96,35 @@ final class FlatMapper
                     }
                     break;
 
-                case NamePrefix::class:
-                    $namePrefix = $attribute->getArguments()[0];
-                    break;
-
-                case Camelize::class:
-                    $camelize = true;
+                case NameTransformation::class:
+                    try {
+                        /** @var NameTransformation $transformation */
+                        $transformation = $attribute->newInstance();
+                    } catch (Error $e) {
+                        throw new MappingCreationException(sprintf(
+                            'Invalid NameTransformation attribute for %s:%s%s',
+                            $dtoClassName,
+                            PHP_EOL,
+                            $e->getMessage()
+                        ));
+                    }
             }
         }
 
         foreach ($constructor->getParameters() as $reflectionParameter) {
-            $originalName = $reflectionParameter->getName();
-            $propertyName = $this->manglePropertyName($originalName, $namePrefix, $camelize);
+            $propertyName = $reflectionParameter->getName();
+            $columnName   = $transformation
+                ? $this->transformPropertyName($propertyName, $transformation)
+                : $propertyName;
             $isIdentifier = false;
             foreach ($reflectionParameter->getAttributes() as $attribute) {
                 if ($attribute->getName() === ReferenceArray::class || $attribute->getName() === ScalarArray::class) {
                     if($this->validateMapping) {
-                        if((new ReflectionProperty($dtoClassName, $originalName))->isReadOnly()) {
-                            throw new MappingCreationException($reflectionClass->getName().': property '.$originalName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
+                        if((new ReflectionProperty($dtoClassName, $propertyName))->isReadOnly()) {
+                            throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
                         }
                     }
-                    $objectsMapping[$dtoClassName][$originalName] = (string)$attribute->getArguments()[0];
+                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     if($attribute->getName() === ReferenceArray::class) {
                         $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
                     }
@@ -126,18 +133,18 @@ final class FlatMapper
                     $identifiersCount++;
                     $isIdentifier = true;
                     if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $propertyName = $attribute->getArguments()[0];
+                        $columnName = $attribute->getArguments()[0];
                     }
                 } else if ($attribute->getName() === Scalar::class) {
-                    $propertyName = $attribute->getArguments()[0];
+                    $columnName = $attribute->getArguments()[0];
                 }
             }
 
             if ($isIdentifier) {
-                $objectIdentifiers[$dtoClassName] = $propertyName;
+                $objectIdentifiers[$dtoClassName] = $columnName;
             }
 
-            $objectsMapping[$dtoClassName][$propertyName] = null;
+            $objectsMapping[$dtoClassName][$columnName] = null;
         }
 
         if($this->validateMapping) {
@@ -156,16 +163,16 @@ final class FlatMapper
         ];
     }
 
-    private function manglePropertyName(string $propertyName, string $prefix, bool $camelize): string
+    private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
     {
-        if ($camelize) {
+        if ($transformation->camelize) {
             $propertyName = strtolower(preg_replace(
                 ['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'],
                 '\1_\2',
                 $propertyName
-            ));
+            ) ?? $propertyName);
         }
-        return $prefix . $propertyName;
+        return $transformation->removePrefix . $propertyName;
     }
 
     /**

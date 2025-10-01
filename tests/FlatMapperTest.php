@@ -240,6 +240,9 @@ class FlatMapperTest extends TestCase
         );
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     private function getResultsForNestedDTOs(): array
     {
         return [
