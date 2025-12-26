@@ -12,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
@@ -261,6 +262,19 @@ class FlatMapperTest extends TestCase
         );
     }
 
+    public function testMapWithNameTransformationWhenDatasetMissingPrefix(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: person_name/');
+
+        $results = [
+            ['person_id' => 1, 'name' => 'John Doe', 'age' => 30],  // Missing person_ prefix
+            ['person_id' => 2, 'name' => 'Jane Smith', 'age' => 25],
+        ];
+
+        ((new FlatMapper())->map(PersonDTO::class, $results));
+    }
+
     public function testMapWithNameTransformationCamelize(): void
     {
         $results = [
@@ -278,6 +292,52 @@ class FlatMapperTest extends TestCase
             var_export($flatMapperResults, true),
             var_export($handmadeResult, true)
         );
+    }
+
+    public function testMapWithNameTransformationCamelizeWhenDatasetUsesWrongCase(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: product_name/');
+
+        $results = [
+            ['product_id' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],  // Wrong case
+            ['product_id' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
+        ];
+
+        ((new FlatMapper())->map(NameTransformationProductDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationBothPrefixAndCamelize(): void
+    {
+        $results = [
+            ['order_id' => 1, 'order_customer_name' => 'John Doe', 'order_total_amount' => 99.99],
+            ['order_id' => 2, 'order_customer_name' => 'Jane Smith', 'order_total_amount' => 149.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(OrderDTO::class, $results));
+
+        $orderDto1 = new OrderDTO(1, "John Doe", 99.99);
+        $orderDto2 = new OrderDTO(2, "Jane Smith", 149.99);
+        $handmadeResult = [1 => $orderDto1, 2 => $orderDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationBothPrefixAndCamelizeWhenDatasetIncorrect(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: order_customer_name/');
+
+        $results = [
+            // Missing order_ prefix - just using snake_case
+            ['order_id' => 1, 'customer_name' => 'John Doe', 'total_amount' => 99.99],
+            ['order_id' => 2, 'customer_name' => 'Jane Smith', 'total_amount' => 149.99],
+        ];
+
+        ((new FlatMapper())->map(OrderDTO::class, $results));
     }
 
     /**
