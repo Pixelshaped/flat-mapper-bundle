@@ -1,6 +1,6 @@
 {
     "name": "pixelshaped/flat-mapper-bundle",
-    "description": "A bundle to easily create non-scalar DTOs from denormalized array results (such as database queries results).",
+    "description": "Object mapper for denormalized data. Transform flat arrays (like database JOIN results) into nested, typed DTOs without the overhead of a full ORM.",
     "type": "symfony-bundle",
     "license": "MIT",
     "autoload": {
