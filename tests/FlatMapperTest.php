@@ -12,6 +12,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
@@ -237,6 +239,44 @@ class FlatMapperTest extends TestCase
         $this::assertEquals(
             $mappedResults,
             [1 => $authorDto1, 2 => $authorDto2, 5 => $authorDto5]
+        );
+    }
+
+    public function testMapWithNameTransformationRemovePrefix(): void
+    {
+        $results = [
+            ['person_id' => 1, 'person_name' => 'John Doe', 'person_age' => 30],
+            ['person_id' => 2, 'person_name' => 'Jane Smith', 'person_age' => 25],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(PersonDTO::class, $results));
+
+        $personDto1 = new PersonDTO(1, "John Doe", 30);
+        $personDto2 = new PersonDTO(2, "Jane Smith", 25);
+        $handmadeResult = [1 => $personDto1, 2 => $personDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationCamelize(): void
+    {
+        $results = [
+            ['product_id' => 1, 'product_name' => 'Widget', 'product_price' => 19.99],
+            ['product_id' => 2, 'product_name' => 'Gadget', 'product_price' => 29.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(NameTransformationProductDTO::class, $results));
+
+        $productDto1 = new NameTransformationProductDTO(1, "Widget", 19.99);
+        $productDto2 = new NameTransformationProductDTO(2, "Gadget", 29.99);
+        $handmadeResult = [1 => $productDto1, 2 => $productDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
         );
     }
 
