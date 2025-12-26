@@ -12,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
@@ -294,13 +295,32 @@ class FlatMapperTest extends TestCase
         );
     }
 
-    public function testMapWithNameTransformationCamelizeWhenDatasetUsesWrongCase(): void
+    public function testMapWithNameTransformationCamelizeActualCamelCase(): void
+    {
+        $results = [
+            ['item_id' => 1, 'item_name' => 'Widget', 'item_price' => 19.99],
+            ['item_id' => 2, 'item_name' => 'Gadget', 'item_price' => 29.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(ItemDTO::class, $results));
+
+        $itemDto1 = new ItemDTO(1, "Widget", 19.99);
+        $itemDto2 = new ItemDTO(2, "Gadget", 29.99);
+        $handmadeResult = [1 => $itemDto1, 2 => $itemDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationCamelizeWhenDatasetNotSnakeCase(): void
     {
         $this->expectException(MappingException::class);
         $this->expectExceptionMessageMatches('/Data does not contain required property: product_name/');
 
         $results = [
-            ['product_id' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],  // Wrong case
+            ['product_id' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
             ['product_id' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
         ];
 
@@ -332,7 +352,7 @@ class FlatMapperTest extends TestCase
         $this->expectExceptionMessageMatches('/Data does not contain required property: order_customer_name/');
 
         $results = [
-            // Missing order_ prefix - just using snake_case
+            // Missing order_ prefix
             ['order_id' => 1, 'customer_name' => 'John Doe', 'total_amount' => 99.99],
             ['order_id' => 2, 'customer_name' => 'Jane Smith', 'total_amount' => 149.99],
         ];

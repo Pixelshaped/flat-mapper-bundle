@@ -7,13 +7,13 @@ use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 
 #[NameTransformation(camelize: true)]
-final readonly class ProductDTO
+final readonly class ItemDTO
 {
     public function __construct(
         #[Identifier]
-        public int $ProductId,
-        public string $ProductName,
-        public float $ProductPrice
+        public int $itemId,
+        public string $itemName,
+        public float $itemPrice
     ) {
     }
 }
