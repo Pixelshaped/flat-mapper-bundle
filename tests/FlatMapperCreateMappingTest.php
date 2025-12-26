@@ -119,4 +119,11 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
         (new FlatMapper())->createMapping(RootDTOWithEmptyClassIdentifier::class);
     }
+
+    public function testCreateMappingWithInvalidNameTransformationAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/Invalid NameTransformation attribute/");
+        (new FlatMapper())->createMapping(InvalidNameTransformationDTO::class);
+    }
 }
