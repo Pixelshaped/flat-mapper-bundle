@@ -155,8 +155,7 @@ final class FlatMapper
             if($identifiersCount !== 1) {
                 throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
-
-            // More efficient uniqueness check using array_flip
+            
             $uniqueCheck = [];
             foreach ($objectIdentifiers as $key => $value) {
                 if (isset($uniqueCheck[$value])) {
