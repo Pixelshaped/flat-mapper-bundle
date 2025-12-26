@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle;
 
+use Error;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
@@ -10,13 +11,16 @@ use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
-use Error;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
 
 final class FlatMapper
 {
+    // Pre-compiled regex patterns for better performance
+    private const SNAKE_CASE_PATTERN_1 = '/([A-Z]+)([A-Z][a-z])/';
+    private const SNAKE_CASE_PATTERN_2 = '/([a-z\d])([A-Z])/';
+    private const SNAKE_CASE_REPLACEMENT = '\1_\2';
 
     /**
      * @var array<class-string, array<class-string, string>>
@@ -48,7 +52,7 @@ final class FlatMapper
         if(!isset($this->objectsMapping[$dtoClassName])) {
 
             if($this->cacheService !== null) {
-                $cacheKey = preg_replace("/([^a-zA-Z0-9]+)/","_", $dtoClassName);;
+                $cacheKey = strtr($dtoClassName, ['\\' => '_', '-' => '_', ' ' => '_']);
                 $mappingInfo = $this->cacheService->get('pixelshaped_flat_mapper_'.$cacheKey, function () use ($dtoClassName): array {
                     return $this->createMappingRecursive($dtoClassName);
                 });
@@ -151,9 +155,13 @@ final class FlatMapper
             if($identifiersCount !== 1) {
                 throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
-
-            if (count($objectIdentifiers) !== count(array_unique($objectIdentifiers))) {
-                throw new MappingCreationException('Several data identifiers are identical: ' . print_r($objectIdentifiers, true));
+            
+            $uniqueCheck = [];
+            foreach ($objectIdentifiers as $key => $value) {
+                if (isset($uniqueCheck[$value])) {
+                    throw new MappingCreationException('Several data identifiers are identical: ' . print_r($objectIdentifiers, true));
+                }
+                $uniqueCheck[$value] = true;
             }
         }
 
@@ -167,8 +175,8 @@ final class FlatMapper
     {
         if ($transformation->snakeCaseColumns) {
             $propertyName = strtolower(preg_replace(
-                ['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'],
-                '\1_\2',
+                [self::SNAKE_CASE_PATTERN_1, self::SNAKE_CASE_PATTERN_2],
+                self::SNAKE_CASE_REPLACEMENT,
                 $propertyName
             ) ?? $propertyName);
         }
