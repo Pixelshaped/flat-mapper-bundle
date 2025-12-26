@@ -12,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\AccountDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
@@ -396,6 +397,43 @@ class FlatMapperTest extends TestCase
         ];
 
         ((new FlatMapper())->map(CarDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationScalarAttributeTakesPrecedence(): void
+    {
+        // AccountDTO has NameTransformation(removePrefix: 'acc_')
+        // But the $balance property has #[Scalar('account_balance')]
+        // This tests that Scalar attribute takes precedence over NameTransformation
+        $results = [
+            ['acc_id' => 1, 'acc_name' => 'Savings', 'account_balance' => 1000.50],
+            ['acc_id' => 2, 'acc_name' => 'Checking', 'account_balance' => 500.25],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(AccountDTO::class, $results));
+
+        $accountDto1 = new AccountDTO(1, "Savings", 1000.50);
+        $accountDto2 = new AccountDTO(2, "Checking", 500.25);
+        $handmadeResult = [1 => $accountDto1, 2 => $accountDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationScalarPrecedenceWhenDatasetWrong(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: account_balance/');
+
+        // This should fail because the Scalar attribute expects 'account_balance'
+        // not 'acc_balance' (which would be the result of applying the transformation)
+        $results = [
+            ['acc_id' => 1, 'acc_name' => 'Savings', 'acc_balance' => 1000.50],
+            ['acc_id' => 2, 'acc_name' => 'Checking', 'acc_balance' => 500.25],
+        ];
+
+        ((new FlatMapper())->map(AccountDTO::class, $results));
     }
 
     /**
