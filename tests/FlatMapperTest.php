@@ -12,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
@@ -317,11 +318,11 @@ class FlatMapperTest extends TestCase
     public function testMapWithNameTransformationCamelizeWhenDatasetNotSnakeCase(): void
     {
         $this->expectException(MappingException::class);
-        $this->expectExceptionMessageMatches('/Data does not contain required property: product_name/');
-
+        $this->expectExceptionMessageMatches('/Identifier not found: product_id/');
+        
         $results = [
-            ['product_id' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
-            ['product_id' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
+            ['ProductId' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
+            ['ProductId' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
         ];
 
         ((new FlatMapper())->map(NameTransformationProductDTO::class, $results));
@@ -358,6 +359,43 @@ class FlatMapperTest extends TestCase
         ];
 
         ((new FlatMapper())->map(OrderDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationIdentifierAttributeTakesPrecedence(): void
+    {
+        // CarDTO has NameTransformation(removePrefix: 'car_', camelize: true)
+        // But the Identifier attribute explicitly specifies 'vehicle_id'
+        // This tests that Identifier attribute takes precedence over NameTransformation
+        $results = [
+            ['vehicle_id' => 1, 'car_model' => 'Civic', 'car_brand' => 'Honda'],
+            ['vehicle_id' => 2, 'car_model' => 'Corolla', 'car_brand' => 'Toyota'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(CarDTO::class, $results));
+
+        $carDto1 = new CarDTO(1, "Civic", "Honda");
+        $carDto2 = new CarDTO(2, "Corolla", "Toyota");
+        $handmadeResult = [1 => $carDto1, 2 => $carDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationIdentifierPrecedenceWhenDatasetWrong(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: vehicle_id/');
+
+        // This should fail because the Identifier attribute expects 'vehicle_id'
+        // not 'car_vehicle_id' (which would be the result of applying the transformation)
+        $results = [
+            ['car_vehicle_id' => 1, 'car_model' => 'Civic', 'car_brand' => 'Honda'],
+            ['car_vehicle_id' => 2, 'car_model' => 'Corolla', 'car_brand' => 'Toyota'],
+        ];
+
+        ((new FlatMapper())->map(CarDTO::class, $results));
     }
 
     /**
