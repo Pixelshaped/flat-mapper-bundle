@@ -7,7 +7,7 @@ use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 
-#[NameTransformation(removePrefix: 'author_')]
+#[NameTransformation(columnPrefix: 'author_')]
 class AuthorDTO
 {
     /**

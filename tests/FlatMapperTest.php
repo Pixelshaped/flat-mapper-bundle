@@ -12,6 +12,13 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\AccountDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\LegacyDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
@@ -237,6 +244,217 @@ class FlatMapperTest extends TestCase
         $this::assertEquals(
             $mappedResults,
             [1 => $authorDto1, 2 => $authorDto2, 5 => $authorDto5]
+        );
+    }
+
+    public function testMapWithNameTransformationRemovePrefix(): void
+    {
+        $results = [
+            ['person_id' => 1, 'person_name' => 'John Doe', 'person_age' => 30],
+            ['person_id' => 2, 'person_name' => 'Jane Smith', 'person_age' => 25],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(PersonDTO::class, $results));
+
+        $personDto1 = new PersonDTO(1, "John Doe", 30);
+        $personDto2 = new PersonDTO(2, "Jane Smith", 25);
+        $handmadeResult = [1 => $personDto1, 2 => $personDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationWhenDatasetMissingPrefix(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: person_name/');
+
+        $results = [
+            ['person_id' => 1, 'name' => 'John Doe', 'age' => 30],  // Missing person_ prefix
+            ['person_id' => 2, 'name' => 'Jane Smith', 'age' => 25],
+        ];
+
+        ((new FlatMapper())->map(PersonDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationCamelize(): void
+    {
+        $results = [
+            ['product_id' => 1, 'product_name' => 'Widget', 'product_price' => 19.99],
+            ['product_id' => 2, 'product_name' => 'Gadget', 'product_price' => 29.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(NameTransformationProductDTO::class, $results));
+
+        $productDto1 = new NameTransformationProductDTO(1, "Widget", 19.99);
+        $productDto2 = new NameTransformationProductDTO(2, "Gadget", 29.99);
+        $handmadeResult = [1 => $productDto1, 2 => $productDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationCamelizeActualCamelCase(): void
+    {
+        $results = [
+            ['item_id' => 1, 'item_name' => 'Widget', 'item_price' => 19.99],
+            ['item_id' => 2, 'item_name' => 'Gadget', 'item_price' => 29.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(ItemDTO::class, $results));
+
+        $itemDto1 = new ItemDTO(1, "Widget", 19.99);
+        $itemDto2 = new ItemDTO(2, "Gadget", 29.99);
+        $handmadeResult = [1 => $itemDto1, 2 => $itemDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationCamelizeWhenDatasetNotSnakeCase(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: product_id/');
+        
+        $results = [
+            ['ProductId' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
+            ['ProductId' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
+        ];
+
+        ((new FlatMapper())->map(NameTransformationProductDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationBothPrefixAndCamelize(): void
+    {
+        $results = [
+            ['order_id' => 1, 'order_customer_name' => 'John Doe', 'order_total_amount' => 99.99],
+            ['order_id' => 2, 'order_customer_name' => 'Jane Smith', 'order_total_amount' => 149.99],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(OrderDTO::class, $results));
+
+        $orderDto1 = new OrderDTO(1, "John Doe", 99.99);
+        $orderDto2 = new OrderDTO(2, "Jane Smith", 149.99);
+        $handmadeResult = [1 => $orderDto1, 2 => $orderDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationBothPrefixAndCamelizeWhenDatasetIncorrect(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: order_customer_name/');
+
+        $results = [
+            // Missing order_ prefix
+            ['order_id' => 1, 'customer_name' => 'John Doe', 'total_amount' => 99.99],
+            ['order_id' => 2, 'customer_name' => 'Jane Smith', 'total_amount' => 149.99],
+        ];
+
+        ((new FlatMapper())->map(OrderDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationIdentifierAttributeTakesPrecedence(): void
+    {
+        // CarDTO has NameTransformation(removePrefix: 'car_', camelize: true)
+        // But the Identifier attribute explicitly specifies 'vehicle_id'
+        // This tests that Identifier attribute takes precedence over NameTransformation
+        $results = [
+            ['vehicle_id' => 1, 'car_model' => 'Civic', 'car_brand' => 'Honda'],
+            ['vehicle_id' => 2, 'car_model' => 'Corolla', 'car_brand' => 'Toyota'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(CarDTO::class, $results));
+
+        $carDto1 = new CarDTO(1, "Civic", "Honda");
+        $carDto2 = new CarDTO(2, "Corolla", "Toyota");
+        $handmadeResult = [1 => $carDto1, 2 => $carDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationIdentifierPrecedenceWhenDatasetWrong(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: vehicle_id/');
+
+        // This should fail because the Identifier attribute expects 'vehicle_id'
+        // not 'car_vehicle_id' (which would be the result of applying the transformation)
+        $results = [
+            ['car_vehicle_id' => 1, 'car_model' => 'Civic', 'car_brand' => 'Honda'],
+            ['car_vehicle_id' => 2, 'car_model' => 'Corolla', 'car_brand' => 'Toyota'],
+        ];
+
+        ((new FlatMapper())->map(CarDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationScalarAttributeTakesPrecedence(): void
+    {
+        // AccountDTO has NameTransformation(removePrefix: 'acc_')
+        // But the $balance property has #[Scalar('account_balance')]
+        // This tests that Scalar attribute takes precedence over NameTransformation
+        $results = [
+            ['acc_id' => 1, 'acc_name' => 'Savings', 'account_balance' => 1000.50],
+            ['acc_id' => 2, 'acc_name' => 'Checking', 'account_balance' => 500.25],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(AccountDTO::class, $results));
+
+        $accountDto1 = new AccountDTO(1, "Savings", 1000.50);
+        $accountDto2 = new AccountDTO(2, "Checking", 500.25);
+        $handmadeResult = [1 => $accountDto1, 2 => $accountDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNameTransformationScalarPrecedenceWhenDatasetWrong(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: account_balance/');
+
+        // This should fail because the Scalar attribute expects 'account_balance'
+        // not 'acc_balance' (which would be the result of applying the transformation)
+        $results = [
+            ['acc_id' => 1, 'acc_name' => 'Savings', 'acc_balance' => 1000.50],
+            ['acc_id' => 2, 'acc_name' => 'Checking', 'acc_balance' => 500.25],
+        ];
+
+        ((new FlatMapper())->map(AccountDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationBackwardCompatibility(): void
+    {
+        // Test that old parameter names (removePrefix, camelize) still work
+        // LegacyDTO uses the old parameter names
+        $results = [
+            ['legacy_id' => 1, 'legacy_name' => 'Test'],
+            ['legacy_id' => 2, 'legacy_name' => 'Demo'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(LegacyDTO::class, $results));
+
+        $legacyDto1 = new LegacyDTO(1, "Test");
+        $legacyDto2 = new LegacyDTO(2, "Demo");
+        $handmadeResult = [1 => $legacyDto1, 2 => $legacyDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
         );
     }
 

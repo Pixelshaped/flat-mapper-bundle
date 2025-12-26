@@ -77,7 +77,7 @@ This bundle comes with several attributes that you can use to add mapping to you
   - Use it as a Class attribute if you don't intend to use the property yourself ([see example](tests/Examples/Valid/Complex/ProductDTO.php)). It will then only be used internally and not be mapped to your DTO.
   - Use it as a Property attribute if you have some use for it ([see example](tests/Examples/Valid/Complex/CustomerDTO.php)).
   - Specify the mapped property name directly on the attribute ([see example](tests/Examples/Valid/Complex/InvoiceDTO.php)). This is mandatory when used as a Class attribute.
-  - Specify the mapped property name separately with the `InboundProperty` attribute, Doctrine-style ([see example](tests/Examples/Valid/ReferenceArray/AuthorDTO.php)).
+  - Specify the mapped property name separately with the `#[Scalar]` attribute ([see example](tests/Examples/Valid/ReferenceArray/AuthorDTO.php)).
 - `#[Scalar("mapped_property_name")]`: The column `mapped_property_name` of your result set will be mapped to a scalar property of your DTO (the value of the first row will be used). This is optional if your DTO's property names are already matching the result set ([see example](tests/Examples/Valid/WithoutAttributeDTO.php)).
 - `#[ReferenceArray(NestedDTO::class)]`: An array of `NestedDTO` will be created using the mapping information contained in `NestedDTO`.
 - `#[ScalarArray("mapped_property_name")]` The column `mapped_property_name` of your result set will be mapped as an array of scalar properties, such as IDs ([see example](tests/Examples/Valid/ScalarArray/ScalarArrayDTO.php)).
@@ -85,12 +85,15 @@ This bundle comes with several attributes that you can use to add mapping to you
 If the mapping between result columns and DTO properties is consistent, you can use the `#[NameTransformation]`
 class attribute instead of adding `#[Scalar(...)]` to each property:
 
-- `#[NameTransformation(removePrefix: 'foo_')]`: the columns named `foo_bar` and `foo_baz` will be mapped to 
-  `$bar` and `$baz` properties of a DTO class.
-- `#[NameTransformation(camelize: true)]`: the column with snake-case name `foo_bar` will be mapped to `$fooBar` property.
-- If both of the above rules are enabled, then `foo_bar_baz` result column will be mapped to `$barBaz` property.
+- `#[NameTransformation(columnPrefix: 'foo_')]`: adds the prefix `foo_` to property names when looking up columns.
+  For example, properties `$bar` and `$baz` will look for columns `foo_bar` and `foo_baz`.
+- `#[NameTransformation(snakeCaseColumns: true)]`: converts camelCase/PascalCase property names to snake_case when looking up columns.
+  For example, property `$fooBar` or `$FooBar` will look for column `foo_bar`.
+- If both of the above rules are enabled, then property `$barBaz` will look for column `foo_bar_baz`.
 - Adding a `#[Scalar]` attribute or an `#[Identifier]` attribute with explicitly given name to a property will override
   mapping set up on class level.
+
+**Note:** The old parameter names `removePrefix` and `camelize` are still supported for backward compatibility but are deprecated in favor of `columnPrefix` and `snakeCaseColumns`.
 
 <a name="complete_example"></a>
 ### Hydrating nested DTOs

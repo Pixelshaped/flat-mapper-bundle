@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
@@ -43,6 +44,21 @@ class FlatMapperCreateMappingTest extends TestCase
         $cacheInterface = $this->createMock(CacheInterface::class);
         $cacheInterface->expects($this->once())->method('get')->willReturn(
             $reflectionMethod->invoke($flatMapper, AuthorDTO::class)
+        );
+
+        $flatMapper->setCacheService($cacheInterface);
+        $flatMapper->createMapping(AuthorDTO::class);
+    }
+
+    public function testCreateMappingWithCacheServiceMissExecutesCallback(): void
+    {
+        $flatMapper = new FlatMapper();
+
+        $cacheInterface = $this->createMock(CacheInterface::class);
+        $cacheInterface->expects($this->once())->method('get')->willReturnCallback(
+            function (string $key, callable $callback) {
+                return $callback();
+            }
         );
 
         $flatMapper->setCacheService($cacheInterface);
@@ -102,5 +118,12 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
         (new FlatMapper())->createMapping(RootDTOWithEmptyClassIdentifier::class);
+    }
+
+    public function testCreateMappingWithInvalidNameTransformationAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/Invalid NameTransformation attribute/");
+        (new FlatMapper())->createMapping(InvalidNameTransformationDTO::class);
     }
 }
