@@ -49,6 +49,8 @@ But you want **clean, nested DTOs** for your application:
 - Nested object hierarchies (DTOs containing arrays of other DTOs)
 - Type safety (strongly-typed DTOs with PHP attributes)
 
+**And it's fast.** FlatMapper outperforms Doctrine entity hydration for read operations—even without N+1 queries. See [benchmarks](https://github.com/Pixelshaped/flat-mapper-benchmark) comparing FlatMapper to Doctrine entities, partial objects, and manual mapping.
+
 ## Quick Start
 
 ### Installation
@@ -435,11 +437,21 @@ pixelshaped_flat_mapper:
     validate_mapping: '%kernel.debug%'  # true in dev, false in prod
 ```
 
-### Benchmarks
-
-Performance comparisons with Doctrine and other approaches are available at [Pixelshaped/flat-mapper-benchmark](https://github.com/Pixelshaped/flat-mapper-benchmark).
-
 ## Why Not Just Use...?
+
+### Doctrine Entities
+
+FlatMapper is significantly faster for read operations ([see benchmarks](https://github.com/Pixelshaped/flat-mapper-benchmark)):
+- ~2x faster execution time
+- 40-60% less memory usage
+- No lazy-loading surprises
+
+Using full Doctrine entities for reads also:
+- Risks coupling your templates/views to your domain model
+- Loads entity metadata and change tracking overhead
+- Can trigger lazy-loading and N+1 queries (even with proper JOINs, proxies add overhead)
+
+FlatMapper gives you lightweight, read-only DTOs optimized for queries.
 
 ### Doctrine's `NEW` Operator
 
@@ -469,16 +481,6 @@ Most object mappers transform **nested arrays** (like JSON) to objects:
 - Parent information repeats across multiple rows
 - Relationships need to be reconstructed from flat results
 - One row doesn't equal one object
-
-### Doctrine Entities
-
-Using full Doctrine entities works but:
-- Loads unnecessary data and relationships
-- Couples your templates/views to your domain model
-- Uses more memory (entity metadata, change tracking, etc.)
-- Can trigger lazy-loading and N+1 queries
-
-FlatMapper gives you lightweight, read-only DTOs optimized for queries.
 
 ### `PARTIAL` Objects + Manual Mapping
 
