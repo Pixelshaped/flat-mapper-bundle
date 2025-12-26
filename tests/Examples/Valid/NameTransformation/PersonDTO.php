@@ -7,7 +7,7 @@ use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 
 #[Identifier('person_id')]
-#[NameTransformation(removePrefix: 'person_')]
+#[NameTransformation(columnPrefix: 'person_')]
 final readonly class PersonDTO
 {
     public function __construct(

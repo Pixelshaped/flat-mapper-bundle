@@ -7,7 +7,7 @@ use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 
 // Test that Identifier attribute takes precedence over NameTransformation
-#[NameTransformation(removePrefix: 'car_', camelize: true)]
+#[NameTransformation(columnPrefix: 'car_', snakeCaseColumns: true)]
 final readonly class CarDTO
 {
     public function __construct(

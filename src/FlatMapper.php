@@ -165,14 +165,14 @@ final class FlatMapper
 
     private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
     {
-        if ($transformation->camelize) {
+        if ($transformation->snakeCaseColumns) {
             $propertyName = strtolower(preg_replace(
                 ['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'],
                 '\1_\2',
                 $propertyName
             ) ?? $propertyName);
         }
-        return $transformation->removePrefix . $propertyName;
+        return $transformation->columnPrefix . $propertyName;
     }
 
     /**

@@ -8,7 +8,7 @@ use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 
 // Test that Scalar attribute takes precedence over NameTransformation
-#[NameTransformation(removePrefix: 'acc_')]
+#[NameTransformation(columnPrefix: 'acc_')]
 final readonly class AccountDTO
 {
     public function __construct(

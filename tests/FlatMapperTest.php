@@ -15,6 +15,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\AccountDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\LegacyDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
@@ -434,6 +435,27 @@ class FlatMapperTest extends TestCase
         ];
 
         ((new FlatMapper())->map(AccountDTO::class, $results));
+    }
+
+    public function testMapWithNameTransformationBackwardCompatibility(): void
+    {
+        // Test that old parameter names (removePrefix, camelize) still work
+        // LegacyDTO uses the old parameter names
+        $results = [
+            ['legacy_id' => 1, 'legacy_name' => 'Test'],
+            ['legacy_id' => 2, 'legacy_name' => 'Demo'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(LegacyDTO::class, $results));
+
+        $legacyDto1 = new LegacyDTO(1, "Test");
+        $legacyDto2 = new LegacyDTO(2, "Demo");
+        $handmadeResult = [1 => $legacyDto1, 2 => $legacyDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
     }
 
     /**

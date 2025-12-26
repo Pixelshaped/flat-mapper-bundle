@@ -6,7 +6,7 @@ namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes;
 use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
 use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 
-#[NameTransformation(removePrefix: 'book_', camelize: true)]
+#[NameTransformation(columnPrefix: 'book_', snakeCaseColumns: true)]
 class BookDTO
 {
     public function __construct(
