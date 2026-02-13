@@ -43,7 +43,7 @@ class PixelshapedFlatMapperTestingKernel extends Kernel
             new PixelshapedFlatMapperBundle(),
         ];
     }
-    public function registerContainerConfiguration(LoaderInterface $loader)
+    public function registerContainerConfiguration(LoaderInterface $loader): void
     {
     }
 }
@@ -56,7 +56,7 @@ class PixelshapedFlatMapperTestingKernelWithCache extends Kernel
             new PixelshapedFlatMapperBundle(),
         ];
     }
-    public function registerContainerConfiguration(LoaderInterface $loader)
+    public function registerContainerConfiguration(LoaderInterface $loader): void
     {
         $loader->load(function ($container) {
             // Register a mock cache service
