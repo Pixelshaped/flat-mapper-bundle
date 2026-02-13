@@ -16,7 +16,7 @@ class PixelshapedFlatMapperBundle extends AbstractBundle
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $container->import('../config/services.xml');
+        $container->import('../config/services.php');
 
         $flatMapper = $builder->getDefinition('pixelshaped_flat_mapper.flat_mapper');
         if($config['cache_service'] !== null) {
