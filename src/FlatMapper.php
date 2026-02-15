@@ -155,7 +155,7 @@ final class FlatMapper
             if($identifiersCount !== 1) {
                 throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
-            
+
             $uniqueCheck = [];
             foreach ($objectIdentifiers as $key => $value) {
                 if (isset($uniqueCheck[$value])) {
@@ -200,32 +200,42 @@ final class FlatMapper
                 if (!array_key_exists($identifier, $row)) {
                     throw new MappingException('Identifier not found: ' . $identifier);
                 }
-                if ($row[$identifier] !== null && !isset($objectsMap[$identifier][$row[$identifier]])) {
-                    $constructorValues = [];
-                    foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
-                        if($foreignObjectClassOrIdentifier !== null) {
-                            if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
-                                // Handles ReferenceArray attribute
-                                $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
-                                if($row[$foreignIdentifier] !== null) {
-                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
-                                }
-                            } else {
-                                // Handles ScalarArray attribute
-                                if($row[$foreignObjectClassOrIdentifier] !== null) {
-                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
-                                }
+                if ($row[$identifier] === null) {
+                    continue;
+                }
+
+                $objectIdentifier = $row[$identifier];
+                $isNewObject = !isset($objectsMap[$objectClass][$objectIdentifier]);
+                $constructorValues = [];
+
+                foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
+                    if($foreignObjectClassOrIdentifier !== null) {
+                        if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
+                            // Handles ReferenceArray attribute
+                            $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
+                            if($row[$foreignIdentifier] !== null) {
+                                $referencesMap[$objectClass][$objectIdentifier][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
                             }
-                            $constructorValues[] = [];
                         } else {
-                            if(!array_key_exists($objectProperty, $row)) {
-                                throw new MappingException('Data does not contain required property: ' . $objectProperty);
+                            // Handles ScalarArray attribute
+                            if($row[$foreignObjectClassOrIdentifier] !== null) {
+                                $referencesMap[$objectClass][$objectIdentifier][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
                             }
-                            $constructorValues[] = $row[$objectProperty];
                         }
+                        if ($isNewObject) {
+                            $constructorValues[] = [];
+                        }
+                    } else if ($isNewObject) {
+                        if(!array_key_exists($objectProperty, $row)) {
+                            throw new MappingException('Data does not contain required property: ' . $objectProperty);
+                        }
+                        $constructorValues[] = $row[$objectProperty];
                     }
+                }
+
+                if ($isNewObject) {
                     try {
-                        $objectsMap[$objectClass][$row[$identifier]] = new $objectClass(...$constructorValues);
+                        $objectsMap[$objectClass][$objectIdentifier] = new $objectClass(...$constructorValues);
                     } catch (\TypeError $e) {
                         throw new MappingException('Cannot construct object: '.$e->getMessage());
                     }

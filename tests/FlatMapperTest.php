@@ -122,6 +122,20 @@ class FlatMapperTest extends TestCase
         );
     }
 
+    public function testMapDoesNotRecreateObjectForDuplicateIdentifierRows(): void
+    {
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice First', 'book_id' => 1, 'book_name' => 'Book A', 'book_publisher_name' => 'Pub A'],
+            ['author_id' => 1, 'author_name' => 'Alice Overwritten', 'book_id' => 2, 'book_name' => 'Book B', 'book_publisher_name' => 'Pub B'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(AuthorDTO::class, $results));
+
+        $this->assertArrayHasKey(1, $flatMapperResults);
+        $this->assertSame('Alice First', $flatMapperResults[1]->name);
+        $this->assertCount(2, $flatMapperResults[1]->books);
+    }
+
     public function testMapValidScalarArrayDTO(): void
     {
         $results = [
