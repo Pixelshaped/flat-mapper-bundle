@@ -114,7 +114,7 @@ final class FlatMapper
         foreach ($this->getClassMappingAttributes($reflectionClass) as $attribute) {
             switch ($attribute['name']) {
                 case Identifier::class:
-                    $identifierPropertyName = $this->getStringAttributeArgument(
+                    $identifierPropertyName = $this->getStringMappingArgument(
                         $attribute,
                         'mappedPropertyName',
                         sprintf('class "%s"', $dtoClassName)
@@ -154,7 +154,7 @@ final class FlatMapper
                     $mappingArgumentName = $attribute['name'] === ReferenceArray::class
                         ? 'referenceClassName'
                         : 'mappedPropertyName';
-                    $mappedProperty = $this->getStringAttributeArgument(
+                    $mappedProperty = $this->getStringMappingArgument(
                         $attribute,
                         $mappingArgumentName,
                         sprintf('property "%s::$%s"', $dtoClassName, $propertyName)
@@ -192,7 +192,7 @@ final class FlatMapper
                 } else if ($attribute['name'] === Identifier::class) {
                     $identifiersCount++;
                     $isIdentifier = true;
-                    $identifierColumnName = $this->getStringAttributeArgument(
+                    $identifierColumnName = $this->getStringMappingArgument(
                         $attribute,
                         'mappedPropertyName',
                         sprintf('property "%s::$%s"', $dtoClassName, $propertyName)
@@ -201,7 +201,7 @@ final class FlatMapper
                         $columnName = $identifierColumnName;
                     }
                 } else if ($attribute['name'] === Scalar::class) {
-                    $scalarColumnName = $this->getStringAttributeArgument(
+                    $scalarColumnName = $this->getStringMappingArgument(
                         $attribute,
                         'mappedPropertyName',
                         sprintf('property "%s::$%s"', $dtoClassName, $propertyName)
@@ -223,7 +223,7 @@ final class FlatMapper
             if($identifiersCount !== 1) {
                 throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
-            
+
             $uniqueCheck = [];
             foreach ($objectIdentifiers as $key => $value) {
                 if (isset($uniqueCheck[$value])) {
@@ -457,29 +457,16 @@ final class FlatMapper
      *     reflectionAttribute?: \ReflectionAttribute<object>
      * } $attribute
      */
-    private function getAttributeArgument(array $attribute, string $namedArgument, int $position = 0): mixed
+    private function getStringMappingArgument(array $attribute, string $argumentName, string $mappingTarget): ?string
     {
-        if (array_key_exists($position, $attribute['arguments'])) {
-            return $attribute['arguments'][$position];
+        if (array_key_exists(0, $attribute['arguments'])) {
+            $argument = $attribute['arguments'][0];
+        } elseif (array_key_exists($argumentName, $attribute['arguments'])) {
+            $argument = $attribute['arguments'][$argumentName];
+        } else {
+            $argument = null;
         }
 
-        if (array_key_exists($namedArgument, $attribute['arguments'])) {
-            return $attribute['arguments'][$namedArgument];
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array{
-     *     name: class-string,
-     *     arguments: array<int|string, mixed>,
-     *     reflectionAttribute?: \ReflectionAttribute<object>
-     * } $attribute
-     */
-    private function getStringAttributeArgument(array $attribute, string $namedArgument, string $mappingTarget, int $position = 0): ?string
-    {
-        $argument = $this->getAttributeArgument($attribute, $namedArgument, $position);
         if ($argument === null) {
             return null;
         }
@@ -487,7 +474,7 @@ final class FlatMapper
         if (!is_string($argument)) {
             throw new MappingCreationException(sprintf(
                 'Invalid %s argument for attribute "%s" on %s. Expected string, got %s.',
-                $namedArgument,
+                $argumentName,
                 $attribute['name'],
                 $mappingTarget,
                 get_debug_type($argument)
