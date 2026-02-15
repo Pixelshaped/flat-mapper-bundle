@@ -222,6 +222,39 @@ class UserDTO {
 
 Individual `#[Scalar]` or `#[Identifier]` attributes override class-level transformations.
 
+### YAML Mappings
+
+You can also define mappings in YAML (or any PHP array) and FlatMapper will parse them through the same mapping logic as attributes.
+
+If both YAML and PHP attributes are defined for the same DTO/property attribute, PHP attributes take precedence.
+
+```yaml
+pixelshaped_flat_mapper:
+    mappings:
+        App\DTO\AuthorDTO:
+            class:
+                NameTransformation:
+                    columnPrefix: 'author_'
+            properties:
+                id:
+                    Identifier: ~
+                books:
+                    ReferenceArray: App\DTO\BookDTO
+        App\DTO\BookDTO:
+            class:
+                NameTransformation:
+                    columnPrefix: 'book_'
+                    snakeCaseColumns: true
+            properties:
+                id:
+                    Identifier: ~
+```
+
+YAML attribute arguments support:
+- `null` for no argument (example: `Identifier: ~`)
+- scalar value for one positional argument (example: `Scalar: author_id`)
+- array for positional or named arguments (example: `NameTransformation: { columnPrefix: 'book_', snakeCaseColumns: true }`)
+
 ## Complete Examples
 
 ### Nested DTOs Example
@@ -354,6 +387,12 @@ FlatMapper works out of the box with Symfony. Optionally configure for better pe
 pixelshaped_flat_mapper:
     validate_mapping: '%kernel.debug%'  # Disable validation in production
     cache_service: cache.app            # Cache mapping metadata
+    mappings:
+        App\DTO\AuthorDTO:
+            properties:
+                id:
+                    Identifier: ~
+                    Scalar: author_id
 ```
 
 ### Doctrine
@@ -399,6 +438,16 @@ $flatMapper = new FlatMapper();
 $flatMapper
     ->setCacheService($psr6CachePool)  // Any PSR-6 cache
     ->setValidateMapping(false);       // Skip validation checks
+
+// Optional: declare mappings outside PHP attributes
+$flatMapper->setYamlMappings([
+    AuthorDTO::class => [
+        'properties' => [
+            'id' => ['Identifier' => null, 'Scalar' => 'author_id'],
+            'books' => ['ReferenceArray' => BookDTO::class],
+        ],
+    ],
+]);
 
 $result = $flatMapper->map(AuthorDTO::class, $queryResults);
 ```

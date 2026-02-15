@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -32,6 +33,22 @@ class BundleFunctionalTest extends TestCase
         $container = $kernel->getContainer();
         $flatMapper = $container->get('pixelshaped_flat_mapper.flat_mapper');
         $this->assertInstanceOf(FlatMapper::class, $flatMapper);
+    }
+
+    public function testServiceWiringWithYamlMappings(): void
+    {
+        $kernel = new PixelshapedFlatMapperTestingKernelWithMappings('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+        $flatMapper = $container->get('pixelshaped_flat_mapper.flat_mapper');
+
+        $this->assertInstanceOf(FlatMapper::class, $flatMapper);
+
+        $mapped = $flatMapper->map(WithoutAttributeDTO::class, [
+            ['row_id' => 1, 'row_foo' => 'Foo 1', 'row_bar' => 2],
+        ]);
+
+        $this->assertEquals([1 => new WithoutAttributeDTO(1, 'Foo 1', 2)], $mapped);
     }
 }
 
@@ -65,6 +82,32 @@ class PixelshapedFlatMapperTestingKernelWithCache extends Kernel
             $container->loadFromExtension('pixelshaped_flat_mapper', [
                 'cache_service' => 'cache.app',
                 'validate_mapping' => false,
+            ]);
+        });
+    }
+}
+
+class PixelshapedFlatMapperTestingKernelWithMappings extends Kernel
+{
+    public function registerBundles(): iterable
+    {
+        return [
+            new PixelshapedFlatMapperBundle(),
+        ];
+    }
+    public function registerContainerConfiguration(LoaderInterface $loader): void
+    {
+        $loader->load(function ($container) {
+            $container->loadFromExtension('pixelshaped_flat_mapper', [
+                'mappings' => [
+                    WithoutAttributeDTO::class => [
+                        'properties' => [
+                            'id' => ['Scalar' => 'row_id'],
+                            'foo' => ['Scalar' => 'row_foo'],
+                            'bar' => ['Scalar' => 'row_bar'],
+                        ],
+                    ],
+                ],
             ]);
         });
     }

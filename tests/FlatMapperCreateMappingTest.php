@@ -18,11 +18,15 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdenti
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarDTOWithReadonlyClassModifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\AuthorDTO as YamlAuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\BookDTO as YamlBookDTO;
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
 #[CoversMethod(FlatMapper::class, 'createMappingRecursive')]
 #[CoversMethod(FlatMapper::class, 'setCacheService')]
+#[CoversMethod(FlatMapper::class, 'setYamlMappings')]
+#[CoversClass(FlatMapper::class)]
 #[CoversClass(MappingCreationException::class)]
 class FlatMapperCreateMappingTest extends TestCase
 {
@@ -125,5 +129,253 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/Invalid NameTransformation attribute/");
         (new FlatMapper())->createMapping(InvalidNameTransformationDTO::class);
+    }
+
+    public function testCreateMappingWithYamlMappingsDoesNotAssert(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'class' => [
+                    'NameTransformation' => ['columnPrefix' => 'author_'],
+                ],
+                'properties' => [
+                    'id' => ['Identifier' => null],
+                    'books' => ['ReferenceArray' => YamlBookDTO::class],
+                ],
+            ],
+            YamlBookDTO::class => [
+                'class' => [
+                    'NameTransformation' => ['columnPrefix' => 'book_', 'snakeCaseColumns' => true],
+                ],
+                'properties' => [
+                    'id' => ['Identifier' => null],
+                ],
+            ],
+        ]);
+
+        $this->expectNotToPerformAssertions();
+        $flatMapper->createMapping(YamlAuthorDTO::class);
+    }
+
+    public function testCreateMappingWithInvalidYamlMappingShapeAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        // @phpstan-ignore argument.type
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'properties' => [
+                    'id' => 'invalid',
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid YAML mapping/');
+        $flatMapper->createMapping(YamlAuthorDTO::class);
+    }
+
+    public function testCreateMappingWithInvalidYamlAttributeClassAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'properties' => [
+                    'id' => ['UnknownAttribute' => 'author_id'],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Attribute class/');
+        $flatMapper->createMapping(YamlAuthorDTO::class);
+    }
+
+    public function testCreateMappingWithYamlClassAttributesSetToNullDoesNotAssert(): void
+    {
+        $flatMapper = new FlatMapper();
+        // @phpstan-ignore argument.type
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'class' => null,
+                'properties' => [
+                    'id' => ['Identifier' => 'book_id'],
+                ],
+            ],
+        ]);
+
+        $this->expectNotToPerformAssertions();
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlNamedArgumentsDoesNotAssert(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => ['mappedPropertyName' => 'book_id']],
+                ],
+            ],
+        ]);
+
+        $this->expectNotToPerformAssertions();
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlFullyQualifiedAttributeNamesDoesNotAssert(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => [\Pixelshaped\FlatMapperBundle\Mapping\Identifier::class => 'book_id'],
+                ],
+            ],
+        ]);
+
+        $this->expectNotToPerformAssertions();
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlAndReflectionAttributesOverlapDoesNotAssert(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            AuthorDTO::class => [
+                'properties' => [
+                    'id' => [
+                        'Identifier' => 'yaml_author_id',
+                        'Scalar' => 'yaml_author_id',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->expectNotToPerformAssertions();
+        $flatMapper->createMapping(AuthorDTO::class);
+    }
+
+    public function testCreateMappingWithInvalidYamlClassDefinitionAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        // @phpstan-ignore argument.type
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => 'invalid',
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Expected an array/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithInvalidYamlPropertiesDefinitionAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        // @phpstan-ignore argument.type
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => 'invalid',
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/The "properties" section must be an array/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlNonStringAttributeNameAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        // @phpstan-ignore argument.type
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => [0 => 'book_id'],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Attribute names must be strings/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlInvalidAttributeArgumentTypeAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => new \stdClass()],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Expected null, scalar, or array arguments/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testCreateMappingWithYamlReferenceArrayWithoutMappedValueAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => 'author_id'],
+                    'books' => ['ReferenceArray' => null],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/requires a mapped value/');
+        $flatMapper->createMapping(YamlAuthorDTO::class);
+    }
+
+    public function testCreateMappingWithYamlInvalidReferenceClassAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => 'author_id'],
+                    'books' => ['ReferenceArray' => 'This\\Class\\Does\\NotExist'],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid reference class/');
+        $flatMapper->createMapping(YamlAuthorDTO::class);
+    }
+
+    public function testCreateMappingWithYamlScalarNonStringArgumentAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => 'book_id'],
+                    'name' => ['Scalar' => 123],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Expected string, got int/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
+    public function testNormalizeYamlAttributeMapWithNullReturnsEmptyArray(): void
+    {
+        $flatMapper = new FlatMapper();
+        $reflectionMethod = (new \ReflectionClass(FlatMapper::class))->getMethod('normalizeYamlAttributeMap');
+        $reflectionMethod->setAccessible(true);
+
+        /** @var array<class-string, array<int|string, mixed>> $result */
+        $result = $reflectionMethod->invoke($flatMapper, null, 'class "Foo\\Bar\\Baz"');
+        $this->assertSame([], $result);
     }
 }
