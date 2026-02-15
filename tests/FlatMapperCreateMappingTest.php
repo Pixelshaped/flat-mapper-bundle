@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\Circular\CycleRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
@@ -125,5 +126,12 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/Invalid NameTransformation attribute/");
         (new FlatMapper())->createMapping(InvalidNameTransformationDTO::class);
+    }
+
+    public function testCreateMappingWithCircularReferenceArrayAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Circular ReferenceArray mapping detected/');
+        (new FlatMapper())->createMapping(CycleRootDTO::class);
     }
 }

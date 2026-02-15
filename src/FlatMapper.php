@@ -14,6 +14,8 @@ use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
+use TypeError;
+use function in_array;
 
 final class FlatMapper
 {
@@ -69,10 +71,17 @@ final class FlatMapper
      * @param class-string $dtoClassName
      * @param array<class-string, string>|null $objectIdentifiers
      * @param array<class-string, array<int|string, null|string>>|null $objectsMapping
+     * @param list<class-string> $mappingPath
      * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
      */
-    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null): array
+    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null, array $mappingPath = []): array
     {
+        if (in_array($dtoClassName, $mappingPath, true)) {
+            throw new MappingCreationException('Circular ReferenceArray mapping detected: ' . implode(' -> ', [...$mappingPath, $dtoClassName]));
+        }
+
+        $mappingPath[] = $dtoClassName;
+
         if($objectIdentifiers === null) $objectIdentifiers = [];
         if($objectsMapping === null) $objectsMapping = [];
 
@@ -130,7 +139,7 @@ final class FlatMapper
                     }
                     $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     if($attribute->getName() === ReferenceArray::class) {
-                        $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
+                        $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping, $mappingPath);
                     }
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
@@ -236,7 +245,7 @@ final class FlatMapper
                 if ($isNewObject) {
                     try {
                         $objectsMap[$objectClass][$objectIdentifier] = new $objectClass(...$constructorValues);
-                    } catch (\TypeError $e) {
+                    } catch (TypeError $e) {
                         throw new MappingException('Cannot construct object: '.$e->getMessage());
                     }
                 }
