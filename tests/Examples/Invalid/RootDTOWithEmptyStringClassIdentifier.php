@@ -1,0 +1,16 @@
+<?php
+declare(strict_types=1);
+
+namespace Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid;
+
+use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
+use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
+
+#[Identifier('')]
+class RootDTOWithEmptyStringClassIdentifier
+{
+    public function __construct(
+        #[Scalar('object1_name')]
+        public string $name,
+    ) {}
+}

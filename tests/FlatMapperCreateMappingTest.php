@@ -12,6 +12,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\Circular\CycleRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyStringClassIdentifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyStringPropertyIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootAbstractDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayClass;
@@ -132,6 +134,20 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
         (new FlatMapper())->createMapping(RootDTOWithEmptyClassIdentifier::class);
+    }
+
+    public function testCreateMappingWithEmptyStringClassIdentifierAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/The Identifier attribute cannot be used without a property name when used as a Class attribute/");
+        (new FlatMapper())->createMapping(RootDTOWithEmptyStringClassIdentifier::class);
+    }
+
+    public function testCreateMappingWithEmptyStringPropertyIdentifierAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid Identifier attribute/');
+        (new FlatMapper())->createMapping(RootDTOWithEmptyStringPropertyIdentifier::class);
     }
 
     public function testCreateMappingWithInvalidNameTransformationAsserts(): void

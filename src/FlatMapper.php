@@ -107,7 +107,7 @@ final class FlatMapper
             switch ($attribute->getName()) {
                 case Identifier::class:
                     $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
-                    if ($mappedPropertyName !== null) {
+                    if ($mappedPropertyName !== null && $mappedPropertyName !== '') {
                         $objectIdentifiers[$dtoClassName] = $mappedPropertyName;
                         $identifiersCount++;
                     } else {
@@ -166,6 +166,9 @@ final class FlatMapper
                     $identifiersCount++;
                     $isIdentifier = true;
                     $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if($mappedPropertyName === '') {
+                        throw new MappingCreationException('Invalid Identifier attribute for '.$dtoClassName.'::$'.$propertyName);
+                    }
                     if($mappedPropertyName !== null) {
                         $columnName = $mappedPropertyName;
                     }
