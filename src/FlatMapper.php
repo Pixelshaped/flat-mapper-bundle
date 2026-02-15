@@ -11,6 +11,7 @@ use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
+use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -101,8 +102,9 @@ final class FlatMapper
         foreach ($reflectionClass->getAttributes() as $attribute) {
             switch ($attribute->getName()) {
                 case Identifier::class:
-                    if (isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $objectIdentifiers[$dtoClassName] = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if ($mappedPropertyName !== null) {
+                        $objectIdentifiers[$dtoClassName] = $mappedPropertyName;
                         $identifiersCount++;
                     } else {
                         throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
@@ -137,19 +139,38 @@ final class FlatMapper
                             throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
                         }
                     }
-                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     if($attribute->getName() === ReferenceArray::class) {
-                        $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping, $mappingPath);
+                        $referenceClassName = $this->getAttributeArgument($attribute, 'referenceClassName');
+                        if($referenceClassName === null || $referenceClassName === '') {
+                            throw new MappingCreationException('Invalid ReferenceArray attribute for '.$dtoClassName.'::$'.$propertyName);
+                        }
+                        if(!class_exists($referenceClassName)) {
+                            throw new MappingCreationException($referenceClassName.' is not a valid class name');
+                        }
+                        /** @var class-string $referenceClassName */
+                        $objectsMapping[$dtoClassName][$propertyName] = $referenceClassName;
+                        $this->createMappingRecursive($referenceClassName, $objectIdentifiers, $objectsMapping, $mappingPath);
+                    } else {
+                        $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                        if($mappedPropertyName === null || $mappedPropertyName === '') {
+                            throw new MappingCreationException('Invalid ScalarArray attribute for '.$dtoClassName.'::$'.$propertyName);
+                        }
+                        $objectsMapping[$dtoClassName][$propertyName] = $mappedPropertyName;
                     }
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
                     $identifiersCount++;
                     $isIdentifier = true;
-                    if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $columnName = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if($mappedPropertyName !== null) {
+                        $columnName = $mappedPropertyName;
                     }
                 } else if ($attribute->getName() === Scalar::class) {
-                    $columnName = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if($mappedPropertyName === null || $mappedPropertyName === '') {
+                        throw new MappingCreationException('Invalid Scalar attribute for '.$dtoClassName.'::$'.$propertyName);
+                    }
+                    $columnName = $mappedPropertyName;
                 }
             }
 
@@ -178,6 +199,24 @@ final class FlatMapper
             'objectIdentifiers' => $objectIdentifiers,
             'objectsMapping' => $objectsMapping
         ];
+    }
+
+    /**
+     * @param ReflectionAttribute<object> $attribute
+     */
+    private function getAttributeArgument(ReflectionAttribute $attribute, string $argumentName): ?string
+    {
+        $arguments = $attribute->getArguments();
+
+        if (array_key_exists($argumentName, $arguments)) {
+            return $arguments[$argumentName] === null ? null : (string)$arguments[$argumentName];
+        }
+
+        if (array_key_exists(0, $arguments)) {
+            return $arguments[0] === null ? null : (string)$arguments[0];
+        }
+
+        return null;
     }
 
     private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
@@ -227,6 +266,9 @@ final class FlatMapper
                             }
                         } else {
                             // Handles ScalarArray attribute
+                            if(!array_key_exists($foreignObjectClassOrIdentifier, $row)) {
+                                throw new MappingException('Data does not contain required property: ' . $foreignObjectClassOrIdentifier);
+                            }
                             if($row[$foreignObjectClassOrIdentifier] !== null) {
                                 $referencesMap[$objectClass][$objectIdentifier][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
                             }

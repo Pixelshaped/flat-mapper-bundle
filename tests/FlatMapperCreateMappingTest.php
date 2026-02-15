@@ -12,6 +12,10 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\Circular\CycleRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayAttribute;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayClass;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarArrayAttribute;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithReadonlyClassModifier;
@@ -23,6 +27,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
 #[CoversMethod(FlatMapper::class, 'createMappingRecursive')]
+#[CoversMethod(FlatMapper::class, 'getAttributeArgument')]
 #[CoversMethod(FlatMapper::class, 'setCacheService')]
 #[CoversClass(MappingCreationException::class)]
 class FlatMapperCreateMappingTest extends TestCase
@@ -133,5 +138,33 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches('/Circular ReferenceArray mapping detected/');
         (new FlatMapper())->createMapping(CycleRootDTO::class);
+    }
+
+    public function testCreateMappingWithInvalidReferenceArrayClassAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/This\\\\Class\\\\Does\\\\Not\\\\Exist is not a valid class name/');
+        (new FlatMapper())->createMapping(RootDTOWithInvalidReferenceArrayClass::class);
+    }
+
+    public function testCreateMappingWithInvalidReferenceArrayAttributeAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid ReferenceArray attribute/');
+        (new FlatMapper())->createMapping(RootDTOWithInvalidReferenceArrayAttribute::class);
+    }
+
+    public function testCreateMappingWithInvalidScalarArrayAttributeAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid ScalarArray attribute/');
+        (new FlatMapper())->createMapping(RootDTOWithInvalidScalarArrayAttribute::class);
+    }
+
+    public function testCreateMappingWithInvalidScalarAttributeAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Invalid Scalar attribute/');
+        (new FlatMapper())->createMapping(RootDTOWithInvalidScalarAttribute::class);
     }
 }
