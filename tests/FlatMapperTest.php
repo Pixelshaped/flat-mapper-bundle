@@ -19,6 +19,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\LegacyD
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsChildDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsParentDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
@@ -56,6 +58,30 @@ class FlatMapperTest extends TestCase
         ((new FlatMapper())->map(AuthorDTO::class, $results));
     }
 
+    public function testMappingDataWithMissingForeignIdentifierPropertyAssertsWhenRootIdentifierIsCheckedFirst(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: book_id/');
+
+        $flatMapper = new FlatMapper();
+        $flatMapper->createMapping(AuthorDTO::class);
+
+        $objectIdentifiersProperty = (new \ReflectionClass($flatMapper))->getProperty('objectIdentifiers');
+        /** @var array<class-string, array<class-string, string>> $objectIdentifiers */
+        $objectIdentifiers = $objectIdentifiersProperty->getValue($flatMapper);
+        $objectIdentifiers[AuthorDTO::class] = [
+            AuthorDTO::class => 'author_id',
+            BookDTO::class => 'book_id',
+        ];
+        $objectIdentifiersProperty->setValue($flatMapper, $objectIdentifiers);
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+        ];
+
+        $flatMapper->map(AuthorDTO::class, $results);
+    }
+
     public function testMappingDataWithBadlyNamedPropertyAsserts(): void
     {
         $this->expectException(MappingException::class);
@@ -82,6 +108,18 @@ class FlatMapperTest extends TestCase
         ];
 
         ((new FlatMapper())->map(AuthorDTO::class, $results));
+    }
+
+    public function testMappingDataWithMissingScalarArrayPropertyAsserts(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Data does not contain required property: object2_id/');
+
+        $results = [
+            ['object1_id' => 1, 'object1_name' => 'Root 1'],
+        ];
+
+        ((new FlatMapper())->map(ScalarArrayDTO::class, $results));
     }
 
     public function testMappingDataWithBadConstructorTypeAsserts(): void
@@ -120,6 +158,20 @@ class FlatMapperTest extends TestCase
             var_export($flatMapperResults, true),
             var_export($handmadeResult, true)
         );
+    }
+
+    public function testMapDoesNotRecreateObjectForDuplicateIdentifierRows(): void
+    {
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice First', 'book_id' => 1, 'book_name' => 'Book A', 'book_publisher_name' => 'Pub A'],
+            ['author_id' => 1, 'author_name' => 'Alice Overwritten', 'book_id' => 2, 'book_name' => 'Book B', 'book_publisher_name' => 'Pub B'],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(AuthorDTO::class, $results));
+
+        $this->assertArrayHasKey(1, $flatMapperResults);
+        $this->assertSame('Alice First', $flatMapperResults[1]->name);
+        $this->assertCount(2, $flatMapperResults[1]->books);
     }
 
     public function testMapValidScalarArrayDTO(): void
@@ -451,6 +503,30 @@ class FlatMapperTest extends TestCase
         $legacyDto1 = new LegacyDTO(1, "Test");
         $legacyDto2 = new LegacyDTO(2, "Demo");
         $handmadeResult = [1 => $legacyDto1, 2 => $legacyDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithNamedAttributeArguments(): void
+    {
+        $results = [
+            ['parent_id' => 1, 'parent_name' => 'Parent 1', 'child_id' => 11, 'child_name' => 'Child 11', 'tag_id' => 500],
+            ['parent_id' => 1, 'parent_name' => 'Parent 1', 'child_id' => 12, 'child_name' => 'Child 12', 'tag_id' => 501],
+            ['parent_id' => 2, 'parent_name' => 'Parent 2', 'child_id' => null, 'child_name' => null, 'tag_id' => null],
+        ];
+
+        $flatMapperResults = ((new FlatMapper())->map(NamedArgumentsParentDTO::class, $results));
+
+        $parent1 = new NamedArgumentsParentDTO(
+            'Parent 1',
+            [11 => new NamedArgumentsChildDTO(11, 'Child 11'), 12 => new NamedArgumentsChildDTO(12, 'Child 12')],
+            [500, 501]
+        );
+        $parent2 = new NamedArgumentsParentDTO('Parent 2', [], []);
+        $handmadeResult = [1 => $parent1, 2 => $parent2];
 
         $this->assertSame(
             var_export($flatMapperResults, true),

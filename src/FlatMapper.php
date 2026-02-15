@@ -11,9 +11,12 @@ use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
 use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
 use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
 use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
+use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
+use TypeError;
+use function in_array;
 
 final class FlatMapper
 {
@@ -52,7 +55,7 @@ final class FlatMapper
         if(!isset($this->objectsMapping[$dtoClassName])) {
 
             if($this->cacheService !== null) {
-                $cacheKey = strtr($dtoClassName, ['\\' => '_', '-' => '_', ' ' => '_']);
+                $cacheKey = sha1($dtoClassName);
                 $mappingInfo = $this->cacheService->get('pixelshaped_flat_mapper_'.$cacheKey, function () use ($dtoClassName): array {
                     return $this->createMappingRecursive($dtoClassName);
                 });
@@ -69,16 +72,27 @@ final class FlatMapper
      * @param class-string $dtoClassName
      * @param array<class-string, string>|null $objectIdentifiers
      * @param array<class-string, array<int|string, null|string>>|null $objectsMapping
+     * @param list<class-string> $mappingPath
      * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
      */
-    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null): array
+    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null, array $mappingPath = []): array
     {
+        if (in_array($dtoClassName, $mappingPath, true)) {
+            throw new MappingCreationException('Circular ReferenceArray mapping detected: ' . implode(' -> ', [...$mappingPath, $dtoClassName]));
+        }
+
+        $mappingPath[] = $dtoClassName;
+
         if($objectIdentifiers === null) $objectIdentifiers = [];
         if($objectsMapping === null) $objectsMapping = [];
 
         $objectIdentifiers = array_merge([$dtoClassName => 'RESERVED'], $objectIdentifiers);
 
         $reflectionClass = new ReflectionClass($dtoClassName);
+
+        if (!$reflectionClass->isInstantiable()) {
+            throw new MappingCreationException('Class "' . $dtoClassName . '" is not instantiable.');
+        }
 
         $constructor = $reflectionClass->getConstructor();
 
@@ -92,8 +106,9 @@ final class FlatMapper
         foreach ($reflectionClass->getAttributes() as $attribute) {
             switch ($attribute->getName()) {
                 case Identifier::class:
-                    if (isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $objectIdentifiers[$dtoClassName] = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if ($mappedPropertyName !== null && $mappedPropertyName !== '') {
+                        $objectIdentifiers[$dtoClassName] = $mappedPropertyName;
                         $identifiersCount++;
                     } else {
                         throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
@@ -128,19 +143,41 @@ final class FlatMapper
                             throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
                         }
                     }
-                    $objectsMapping[$dtoClassName][$propertyName] = (string)$attribute->getArguments()[0];
                     if($attribute->getName() === ReferenceArray::class) {
-                        $this->createMappingRecursive($attribute->getArguments()[0], $objectIdentifiers, $objectsMapping);
+                        $referenceClassName = $this->getAttributeArgument($attribute, 'referenceClassName');
+                        if($referenceClassName === null || $referenceClassName === '') {
+                            throw new MappingCreationException('Invalid ReferenceArray attribute for '.$dtoClassName.'::$'.$propertyName);
+                        }
+                        if(!class_exists($referenceClassName)) {
+                            throw new MappingCreationException($referenceClassName.' is not a valid class name');
+                        }
+                        /** @var class-string $referenceClassName */
+                        $objectsMapping[$dtoClassName][$propertyName] = $referenceClassName;
+                        $this->createMappingRecursive($referenceClassName, $objectIdentifiers, $objectsMapping, $mappingPath);
+                    } else {
+                        $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                        if($mappedPropertyName === null || $mappedPropertyName === '') {
+                            throw new MappingCreationException('Invalid ScalarArray attribute for '.$dtoClassName.'::$'.$propertyName);
+                        }
+                        $objectsMapping[$dtoClassName][$propertyName] = $mappedPropertyName;
                     }
                     continue 2;
                 } else if ($attribute->getName() === Identifier::class) {
                     $identifiersCount++;
                     $isIdentifier = true;
-                    if(isset($attribute->getArguments()[0]) && $attribute->getArguments()[0] !== null) {
-                        $columnName = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if($mappedPropertyName === '') {
+                        throw new MappingCreationException('Invalid Identifier attribute for '.$dtoClassName.'::$'.$propertyName);
+                    }
+                    if($mappedPropertyName !== null) {
+                        $columnName = $mappedPropertyName;
                     }
                 } else if ($attribute->getName() === Scalar::class) {
-                    $columnName = $attribute->getArguments()[0];
+                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
+                    if($mappedPropertyName === null || $mappedPropertyName === '') {
+                        throw new MappingCreationException('Invalid Scalar attribute for '.$dtoClassName.'::$'.$propertyName);
+                    }
+                    $columnName = $mappedPropertyName;
                 }
             }
 
@@ -155,7 +192,7 @@ final class FlatMapper
             if($identifiersCount !== 1) {
                 throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
             }
-            
+
             $uniqueCheck = [];
             foreach ($objectIdentifiers as $key => $value) {
                 if (isset($uniqueCheck[$value])) {
@@ -169,6 +206,24 @@ final class FlatMapper
             'objectIdentifiers' => $objectIdentifiers,
             'objectsMapping' => $objectsMapping
         ];
+    }
+
+    /**
+     * @param ReflectionAttribute<object> $attribute
+     */
+    private function getAttributeArgument(ReflectionAttribute $attribute, string $argumentName): ?string
+    {
+        $arguments = $attribute->getArguments();
+
+        if (array_key_exists($argumentName, $arguments)) {
+            return $arguments[$argumentName] === null ? null : (string)$arguments[$argumentName];
+        }
+
+        if (array_key_exists(0, $arguments)) {
+            return $arguments[0] === null ? null : (string)$arguments[0];
+        }
+
+        return null;
     }
 
     private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
@@ -200,33 +255,49 @@ final class FlatMapper
                 if (!array_key_exists($identifier, $row)) {
                     throw new MappingException('Identifier not found: ' . $identifier);
                 }
-                if ($row[$identifier] !== null && !isset($objectsMap[$identifier][$row[$identifier]])) {
-                    $constructorValues = [];
-                    foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
-                        if($foreignObjectClassOrIdentifier !== null) {
-                            if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
-                                // Handles ReferenceArray attribute
-                                $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
-                                if($row[$foreignIdentifier] !== null) {
-                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
-                                }
-                            } else {
-                                // Handles ScalarArray attribute
-                                if($row[$foreignObjectClassOrIdentifier] !== null) {
-                                    $referencesMap[$objectClass][$row[$identifier]][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
-                                }
+                if ($row[$identifier] === null) {
+                    continue;
+                }
+
+                $objectIdentifier = $row[$identifier];
+                $isNewObject = !isset($objectsMap[$objectClass][$objectIdentifier]);
+                $constructorValues = [];
+
+                foreach ($this->objectsMapping[$dtoClassName][$objectClass] as $objectProperty => $foreignObjectClassOrIdentifier) {
+                    if($foreignObjectClassOrIdentifier !== null) {
+                        if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
+                            // Handles ReferenceArray attribute
+                            $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
+                            if (!array_key_exists($foreignIdentifier, $row)) {
+                                throw new MappingException('Identifier not found: ' . $foreignIdentifier);
                             }
-                            $constructorValues[] = [];
+                            if($row[$foreignIdentifier] !== null) {
+                                $referencesMap[$objectClass][$objectIdentifier][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
+                            }
                         } else {
-                            if(!array_key_exists($objectProperty, $row)) {
-                                throw new MappingException('Data does not contain required property: ' . $objectProperty);
+                            // Handles ScalarArray attribute
+                            if(!array_key_exists($foreignObjectClassOrIdentifier, $row)) {
+                                throw new MappingException('Data does not contain required property: ' . $foreignObjectClassOrIdentifier);
                             }
-                            $constructorValues[] = $row[$objectProperty];
+                            if($row[$foreignObjectClassOrIdentifier] !== null) {
+                                $referencesMap[$objectClass][$objectIdentifier][$objectProperty][] = $row[$foreignObjectClassOrIdentifier];
+                            }
                         }
+                        if ($isNewObject) {
+                            $constructorValues[] = [];
+                        }
+                    } else if ($isNewObject) {
+                        if(!array_key_exists($objectProperty, $row)) {
+                            throw new MappingException('Data does not contain required property: ' . $objectProperty);
+                        }
+                        $constructorValues[] = $row[$objectProperty];
                     }
+                }
+
+                if ($isNewObject) {
                     try {
-                        $objectsMap[$objectClass][$row[$identifier]] = new $objectClass(...$constructorValues);
-                    } catch (\TypeError $e) {
+                        $objectsMap[$objectClass][$objectIdentifier] = new $objectClass(...$constructorValues);
+                    } catch (TypeError $e) {
                         throw new MappingException('Cannot construct object: '.$e->getMessage());
                     }
                 }
