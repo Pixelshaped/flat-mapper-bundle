@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\MappingResolver;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\AuthorDTO as ClassAttributesAuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as ClassAttributesBookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
@@ -27,6 +28,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\AuthorDTO as YamlAuth
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\BookDTO as YamlBookDTO;
 
 #[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingResolver::class)]
 #[CoversClass(MappingException::class)]
 class FlatMapperTest extends TestCase
 {

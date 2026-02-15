@@ -6,6 +6,7 @@ namespace Pixelshaped\FlatMapperBundle\Tests\Functional;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\MappingResolver;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -14,6 +15,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 #[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingResolver::class)]
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
 class BundleFunctionalTest extends TestCase
 {

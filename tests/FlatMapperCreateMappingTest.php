@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\MappingResolver;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
@@ -23,10 +24,10 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\BookDTO as YamlBookDT
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
-#[CoversMethod(FlatMapper::class, 'createMappingRecursive')]
 #[CoversMethod(FlatMapper::class, 'setCacheService')]
 #[CoversMethod(FlatMapper::class, 'setYamlMappings')]
 #[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingResolver::class)]
 #[CoversClass(MappingCreationException::class)]
 class FlatMapperCreateMappingTest extends TestCase
 {
@@ -40,14 +41,9 @@ class FlatMapperCreateMappingTest extends TestCase
     public function testCreateMappingWithCacheServiceDoesNotAssert(): void
     {
         $flatMapper = new FlatMapper();
-
-        // The intention is not to test the createMappingRecursive private method
-        // but to dynamically give the CacheInterface mock a proper return value.
-        $reflectionMethod = (new \ReflectionClass(FlatMapper::class))->getMethod('createMappingRecursive');
-        $reflectionMethod->setAccessible(true);
         $cacheInterface = $this->createMock(CacheInterface::class);
         $cacheInterface->expects($this->once())->method('get')->willReturn(
-            $reflectionMethod->invoke($flatMapper, AuthorDTO::class)
+            (new MappingResolver())->resolve(AuthorDTO::class)
         );
 
         $flatMapper->setCacheService($cacheInterface);
@@ -74,6 +70,14 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/An error occurred during mapping creation: ThisIsNotAValidClassString is not a valid class name/");
         (new FlatMapper())->createMapping('ThisIsNotAValidClassString');
+    }
+
+    public function testResolveWrongClassNameAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches("/An error occurred during mapping creation: ThisIsNotAValidClassString is not a valid class name/");
+        // @phpstan-ignore argument.type
+        (new MappingResolver())->resolve('ThisIsNotAValidClassString');
     }
 
     public function testCreateMappingWithSeveralIdenticalIdentifiersAsserts(): void
@@ -370,12 +374,12 @@ class FlatMapperCreateMappingTest extends TestCase
 
     public function testNormalizeYamlAttributeMapWithNullReturnsEmptyArray(): void
     {
-        $flatMapper = new FlatMapper();
-        $reflectionMethod = (new \ReflectionClass(FlatMapper::class))->getMethod('normalizeYamlAttributeMap');
+        $mappingResolver = new MappingResolver();
+        $reflectionMethod = (new \ReflectionClass(MappingResolver::class))->getMethod('normalizeYamlAttributeMap');
         $reflectionMethod->setAccessible(true);
 
         /** @var array<class-string, array<int|string, mixed>> $result */
-        $result = $reflectionMethod->invoke($flatMapper, null, 'class "Foo\\Bar\\Baz"');
+        $result = $reflectionMethod->invoke($mappingResolver, null, 'class "Foo\\Bar\\Baz"');
         $this->assertSame([], $result);
     }
 }
