@@ -52,7 +52,7 @@ final class FlatMapper
         if(!isset($this->objectsMapping[$dtoClassName])) {
 
             if($this->cacheService !== null) {
-                $cacheKey = strtr($dtoClassName, ['\\' => '_', '-' => '_', ' ' => '_']);
+                $cacheKey = sha1($dtoClassName);
                 $mappingInfo = $this->cacheService->get('pixelshaped_flat_mapper_'.$cacheKey, function () use ($dtoClassName): array {
                     return $this->createMappingRecursive($dtoClassName);
                 });
