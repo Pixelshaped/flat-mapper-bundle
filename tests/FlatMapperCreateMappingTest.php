@@ -12,6 +12,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\Circular\CycleRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootAbstractDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayClass;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarArrayAttribute;
@@ -117,6 +118,13 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not have a constructor/");
         (new FlatMapper())->createMapping(RootDTOWithoutConstructor::class);
+    }
+
+    public function testCreateMappingWithAbstractClassAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/is not instantiable/');
+        (new FlatMapper())->createMapping(RootAbstractDTO::class);
     }
 
     public function testCreateMappingWithEmptyClassIdentifierAsserts(): void

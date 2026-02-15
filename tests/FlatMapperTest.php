@@ -58,6 +58,30 @@ class FlatMapperTest extends TestCase
         ((new FlatMapper())->map(AuthorDTO::class, $results));
     }
 
+    public function testMappingDataWithMissingForeignIdentifierPropertyAssertsWhenRootIdentifierIsCheckedFirst(): void
+    {
+        $this->expectException(MappingException::class);
+        $this->expectExceptionMessageMatches('/Identifier not found: book_id/');
+
+        $flatMapper = new FlatMapper();
+        $flatMapper->createMapping(AuthorDTO::class);
+
+        $objectIdentifiersProperty = (new \ReflectionClass($flatMapper))->getProperty('objectIdentifiers');
+        /** @var array<class-string, array<class-string, string>> $objectIdentifiers */
+        $objectIdentifiers = $objectIdentifiersProperty->getValue($flatMapper);
+        $objectIdentifiers[AuthorDTO::class] = [
+            AuthorDTO::class => 'author_id',
+            BookDTO::class => 'book_id',
+        ];
+        $objectIdentifiersProperty->setValue($flatMapper, $objectIdentifiers);
+
+        $results = [
+            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_name' => 'Travelling as a group', 'book_publisher_name' => 'TravelBooks'],
+        ];
+
+        $flatMapper->map(AuthorDTO::class, $results);
+    }
+
     public function testMappingDataWithBadlyNamedPropertyAsserts(): void
     {
         $this->expectException(MappingException::class);

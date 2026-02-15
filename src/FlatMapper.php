@@ -90,6 +90,10 @@ final class FlatMapper
 
         $reflectionClass = new ReflectionClass($dtoClassName);
 
+        if (!$reflectionClass->isInstantiable()) {
+            throw new MappingCreationException('Class "' . $dtoClassName . '" is not instantiable.');
+        }
+
         $constructor = $reflectionClass->getConstructor();
 
         if($constructor === null) {
@@ -261,6 +265,9 @@ final class FlatMapper
                         if (isset($this->objectsMapping[$dtoClassName][$foreignObjectClassOrIdentifier])) {
                             // Handles ReferenceArray attribute
                             $foreignIdentifier = $this->objectIdentifiers[$dtoClassName][$foreignObjectClassOrIdentifier];
+                            if (!array_key_exists($foreignIdentifier, $row)) {
+                                throw new MappingException('Identifier not found: ' . $foreignIdentifier);
+                            }
                             if($row[$foreignIdentifier] !== null) {
                                 $referencesMap[$objectClass][$objectIdentifier][$objectProperty][$row[$foreignIdentifier]] = $objectsMap[$foreignObjectClassOrIdentifier][$row[$foreignIdentifier]];
                             }
