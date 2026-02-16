@@ -435,9 +435,8 @@ use Pixelshaped\FlatMapperBundle\FlatMapper;
 $flatMapper = new FlatMapper();
 
 // Optional: configure for production
-$flatMapper
-    ->setCacheService($psr6CachePool)  // Any PSR-6 cache
-    ->setValidateMapping(false);       // Skip validation checks
+$flatMapper->setCacheService($cache);      // Any Symfony\Contracts\Cache\CacheInterface implementation
+$flatMapper->setValidateMapping(false);    // Skip validation checks
 
 // Optional: declare mappings outside PHP attributes
 $flatMapper->setYamlMappings([

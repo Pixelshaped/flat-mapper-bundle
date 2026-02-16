@@ -3,11 +3,14 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests\Functional;
 
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -17,6 +20,29 @@ use Symfony\Contracts\Cache\ItemInterface;
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
 class BundleFunctionalTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $cacheDir = dirname(__DIR__, 2).'/var/cache/test';
+        if (!is_dir($cacheDir)) {
+            return;
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($cacheDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        /** @var \SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                rmdir($item->getPathname());
+                continue;
+            }
+            unlink($item->getPathname());
+        }
+        rmdir($cacheDir);
+    }
+
     public function testServiceWiring(): void
     {
         $kernel = new PixelshapedFlatMapperTestingKernel('test', true);
