@@ -17,6 +17,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyStringPr
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootAbstractDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayClass;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNonStringScalarArgument;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
@@ -265,6 +266,13 @@ class FlatMapperCreateMappingTest extends TestCase
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches('/Invalid Scalar attribute/');
         (new FlatMapper())->createMapping(RootDTOWithInvalidScalarAttribute::class);
+    }
+
+    public function testCreateMappingWithNonStringScalarArgumentAsserts(): void
+    {
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Expected string, got int/');
+        (new FlatMapper())->createMapping(RootDTOWithNonStringScalarArgument::class);
     }
 
     public function testCreateMappingWithYamlMappingsDoesNotAssert(): void

@@ -267,16 +267,16 @@ final class FlatMapper
     /**
      * @param ReflectionAttribute<object> $attribute
      */
-    private function getAttributeArgument(ReflectionAttribute $attribute, string $argumentName): ?string
+    private function getAttributeArgument(ReflectionAttribute $attribute, string $argumentName): mixed
     {
         $arguments = $attribute->getArguments();
 
         if (array_key_exists($argumentName, $arguments)) {
-            return $arguments[$argumentName] === null ? null : (string)$arguments[$argumentName];
+            return $arguments[$argumentName];
         }
 
         if (array_key_exists(0, $arguments)) {
-            return $arguments[0] === null ? null : (string)$arguments[0];
+            return $arguments[0];
         }
 
         return null;
