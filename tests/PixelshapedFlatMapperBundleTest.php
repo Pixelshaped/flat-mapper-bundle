@@ -7,6 +7,7 @@ use FilesystemIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\MappingResolver;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use RecursiveDirectoryIterator;
@@ -26,6 +27,7 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingResolver::class)]
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
 class PixelshapedFlatMapperBundleTest extends TestCase
 {
