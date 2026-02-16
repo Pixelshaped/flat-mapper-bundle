@@ -9,6 +9,8 @@ use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Loader\DefinitionFileLoader;
@@ -22,8 +24,6 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\Cache\CacheInterface;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 
 #[CoversClass(FlatMapper::class)]
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
@@ -210,6 +210,7 @@ class PixelshapedFlatMapperMockCacheAdapter implements CacheInterface
      */
     public function get(string $key, callable $callback, ?float $beta = null, ?array &$metadata = null): mixed
     {
+        /** @phpstan-ignore-next-line */
         return $callback();
     }
 
