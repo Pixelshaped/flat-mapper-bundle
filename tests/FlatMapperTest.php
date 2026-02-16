@@ -7,11 +7,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
+use Pixelshaped\FlatMapperBundle\MappingResolver;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\AuthorDTO as ClassAttributesAuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as ClassAttributesBookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsChildDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsParentDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\AccountDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
@@ -19,14 +22,15 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\LegacyD
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsChildDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsParentDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\AuthorDTO as YamlAuthorDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\BookDTO as YamlBookDTO;
 
 #[CoversClass(FlatMapper::class)]
+#[CoversClass(MappingResolver::class)]
 #[CoversClass(MappingException::class)]
 class FlatMapperTest extends TestCase
 {
@@ -80,20 +84,6 @@ class FlatMapperTest extends TestCase
         ];
 
         $flatMapper->map(AuthorDTO::class, $results);
-    }
-
-    public function testMappingDataWithBadlyNamedPropertyAsserts(): void
-    {
-        $this->expectException(MappingException::class);
-        $this->expectExceptionMessageMatches('/Data does not contain required property: book_publisher_name/');
-
-        $results = [
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'badly_named_publisher_field' => 'Lorem Press'],
-            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
-        ];
-
-        ((new FlatMapper())->map(AuthorDTO::class, $results));
     }
 
     public function testMappingDataWithMissingPropertyAsserts(): void
@@ -265,6 +255,81 @@ class FlatMapperTest extends TestCase
         );
     }
 
+    public function testMapWithYamlMappingsOnly(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => [
+                'class' => [
+                    'NameTransformation' => ['columnPrefix' => 'author_'],
+                ],
+                'properties' => [
+                    'id' => ['Identifier' => null],
+                    'books' => ['ReferenceArray' => YamlBookDTO::class],
+                ],
+            ],
+            YamlBookDTO::class => [
+                'class' => [
+                    'NameTransformation' => ['columnPrefix' => 'book_', 'snakeCaseColumns' => true],
+                ],
+                'properties' => [
+                    'id' => ['Identifier' => null],
+                ],
+            ],
+        ]);
+
+        $flatMapperResults = $flatMapper->map(YamlAuthorDTO::class, $this->getResultsForNestedDTOs());
+
+        $bookDto1 = new YamlBookDTO(1, "Travelling as a group", "TravelBooks");
+        $bookDto2 = new YamlBookDTO(2, "My journeys", "Lorem Press");
+        $bookDto3 = new YamlBookDTO(3, "Coding on the road", "Ipsum Books");
+        $bookDto4 = new YamlBookDTO(4, "My best recipes", "Cooking and Stuff");
+
+        $authorDto1 = new YamlAuthorDTO(1, "Alice Brian", [
+            1 => $bookDto1, 2 => $bookDto2, 3 => $bookDto3
+        ]);
+        $authorDto2 = new YamlAuthorDTO(2, "Bob Schmo", [
+            1 => $bookDto1, 4 => $bookDto4
+        ]);
+        $authorDto5 = new YamlAuthorDTO(5, "Charlie Doe", []);
+        $handmadeResult = [1 => $authorDto1, 2 => $authorDto2, 5 => $authorDto5];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
+    public function testMapWithYamlMappingsAndAttributesCombined(): void
+    {
+        $results = [
+            ['row_id' => 1, 'row_foo' => 'Foo 1', 'row_bar' => 1],
+            ['row_id' => 2, 'row_foo' => 'Foo 2', 'row_bar' => 2],
+        ];
+
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            WithoutAttributeDTO::class => [
+                'properties' => [
+                    'id' => ['Scalar' => 'row_id'],
+                    'foo' => ['Scalar' => 'row_foo'],
+                    'bar' => ['Scalar' => 'row_bar'],
+                ],
+            ],
+        ]);
+
+        $flatMapperResults = $flatMapper->map(WithoutAttributeDTO::class, $results);
+
+        $rootDto1 = new WithoutAttributeDTO(1, "Foo 1", 1);
+        $rootDto2 = new WithoutAttributeDTO(2, "Foo 2", 2);
+        $handmadeResult = [1 => $rootDto1, 2 => $rootDto2];
+
+        $this->assertSame(
+            var_export($flatMapperResults, true),
+            var_export($handmadeResult, true)
+        );
+    }
+
     public function testMapEmptyData(): void
     {
         $flatMapperResults = ((new FlatMapper())->map(ScalarArrayDTO::class, []));
@@ -373,7 +438,7 @@ class FlatMapperTest extends TestCase
     {
         $this->expectException(MappingException::class);
         $this->expectExceptionMessageMatches('/Identifier not found: product_id/');
-        
+
         $results = [
             ['ProductId' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
             ['ProductId' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],

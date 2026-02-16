@@ -3,28 +3,14 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle;
 
-use Error;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\Exception\MappingException;
-use Pixelshaped\FlatMapperBundle\Mapping\Identifier;
-use Pixelshaped\FlatMapperBundle\Mapping\NameTransformation;
-use Pixelshaped\FlatMapperBundle\Mapping\ReferenceArray;
-use Pixelshaped\FlatMapperBundle\Mapping\Scalar;
-use Pixelshaped\FlatMapperBundle\Mapping\ScalarArray;
-use ReflectionAttribute;
-use ReflectionClass;
 use ReflectionProperty;
 use Symfony\Contracts\Cache\CacheInterface;
 use TypeError;
-use function in_array;
 
 final class FlatMapper
 {
-    // Pre-compiled regex patterns for better performance
-    private const SNAKE_CASE_PATTERN_1 = '/([A-Z]+)([A-Z][a-z])/';
-    private const SNAKE_CASE_PATTERN_2 = '/([a-z\d])([A-Z])/';
-    private const SNAKE_CASE_REPLACEMENT = '\1_\2';
-
     /**
      * @var array<class-string, array<class-string, string>>
      */
@@ -35,7 +21,13 @@ final class FlatMapper
     private array $objectsMapping = [];
 
     private ?CacheInterface $cacheService = null;
-    private bool $validateMapping = true;
+
+    private MappingResolver $mappingResolver;
+
+    public function __construct()
+    {
+        $this->mappingResolver = new MappingResolver();
+    }
 
     public function setCacheService(CacheInterface $cacheService): void
     {
@@ -44,7 +36,22 @@ final class FlatMapper
 
     public function setValidateMapping(bool $validateMapping): void
     {
-        $this->validateMapping = $validateMapping;
+        $this->mappingResolver->setValidateMapping($validateMapping);
+    }
+
+    /**
+     * @param array<class-string, array{
+     *     class?: array<string, mixed>,
+     *     properties?: array<string, array<string, mixed>>
+     * }> $yamlMappings
+     */
+    public function setYamlMappings(array $yamlMappings): void
+    {
+        $this->mappingResolver->setYamlMappings($yamlMappings);
+
+        // Mapping source changed, so in-memory compiled mappings need to be rebuilt.
+        $this->objectIdentifiers = [];
+        $this->objectsMapping = [];
     }
 
     public function createMapping(string $dtoClassName): void
@@ -52,190 +59,22 @@ final class FlatMapper
         if(!class_exists($dtoClassName)) {
             throw new MappingCreationException($dtoClassName.' is not a valid class name');
         }
-        if(!isset($this->objectsMapping[$dtoClassName])) {
 
-            if($this->cacheService !== null) {
-                $cacheKey = sha1($dtoClassName);
-                $mappingInfo = $this->cacheService->get('pixelshaped_flat_mapper_'.$cacheKey, function () use ($dtoClassName): array {
-                    return $this->createMappingRecursive($dtoClassName);
-                });
-            } else {
-                $mappingInfo = $this->createMappingRecursive($dtoClassName);
-            }
-
-            $this->objectsMapping[$dtoClassName] = $mappingInfo['objectsMapping'];
-            $this->objectIdentifiers[$dtoClassName] = $mappingInfo['objectIdentifiers'];
-        }
-    }
-
-    /**
-     * @param class-string $dtoClassName
-     * @param array<class-string, string>|null $objectIdentifiers
-     * @param array<class-string, array<int|string, null|string>>|null $objectsMapping
-     * @param list<class-string> $mappingPath
-     * @return array{'objectIdentifiers': array<class-string, string>, "objectsMapping": array<class-string, array<int|string, null|string>>}
-     */
-    private function createMappingRecursive(string $dtoClassName, ?array& $objectIdentifiers = null, ?array& $objectsMapping = null, array $mappingPath = []): array
-    {
-        if (in_array($dtoClassName, $mappingPath, true)) {
-            throw new MappingCreationException('Circular ReferenceArray mapping detected: ' . implode(' -> ', [...$mappingPath, $dtoClassName]));
+        if(isset($this->objectsMapping[$dtoClassName])) {
+            return;
         }
 
-        $mappingPath[] = $dtoClassName;
-
-        if($objectIdentifiers === null) $objectIdentifiers = [];
-        if($objectsMapping === null) $objectsMapping = [];
-
-        $objectIdentifiers = array_merge([$dtoClassName => 'RESERVED'], $objectIdentifiers);
-
-        $reflectionClass = new ReflectionClass($dtoClassName);
-
-        if (!$reflectionClass->isInstantiable()) {
-            throw new MappingCreationException('Class "' . $dtoClassName . '" is not instantiable.');
+        if($this->cacheService !== null) {
+            $mappingInfo = $this->cacheService->get($this->mappingResolver->createCacheKey($dtoClassName), function () use ($dtoClassName): array {
+                return $this->mappingResolver->resolve($dtoClassName);
+            });
+        } else {
+            $mappingInfo = $this->mappingResolver->resolve($dtoClassName);
         }
 
-        $constructor = $reflectionClass->getConstructor();
+        $this->objectsMapping[$dtoClassName] = $mappingInfo['objectsMapping'];
+        $this->objectIdentifiers[$dtoClassName] = $mappingInfo['objectIdentifiers'];
 
-        if($constructor === null) {
-            throw new MappingCreationException('Class "' . $dtoClassName . '" does not have a constructor.');
-        }
-
-        $identifiersCount = 0;
-        $transformation   = null;
-
-        foreach ($reflectionClass->getAttributes() as $attribute) {
-            switch ($attribute->getName()) {
-                case Identifier::class:
-                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
-                    if ($mappedPropertyName !== null && $mappedPropertyName !== '') {
-                        $objectIdentifiers[$dtoClassName] = $mappedPropertyName;
-                        $identifiersCount++;
-                    } else {
-                        throw new MappingCreationException('The Identifier attribute cannot be used without a property name when used as a Class attribute');
-                    }
-                    break;
-
-                case NameTransformation::class:
-                    try {
-                        /** @var NameTransformation $transformation */
-                        $transformation = $attribute->newInstance();
-                    } catch (Error $e) {
-                        throw new MappingCreationException(sprintf(
-                            'Invalid NameTransformation attribute for %s:%s%s',
-                            $dtoClassName,
-                            PHP_EOL,
-                            $e->getMessage()
-                        ));
-                    }
-            }
-        }
-
-        foreach ($constructor->getParameters() as $reflectionParameter) {
-            $propertyName = $reflectionParameter->getName();
-            $columnName   = $transformation
-                ? $this->transformPropertyName($propertyName, $transformation)
-                : $propertyName;
-            $isIdentifier = false;
-            foreach ($reflectionParameter->getAttributes() as $attribute) {
-                if ($attribute->getName() === ReferenceArray::class || $attribute->getName() === ScalarArray::class) {
-                    if($this->validateMapping) {
-                        if((new ReflectionProperty($dtoClassName, $propertyName))->isReadOnly()) {
-                            throw new MappingCreationException($reflectionClass->getName().': property '.$propertyName.' cannot be readonly as it is non-scalar and '.static::class.' needs to access it after object instantiation.');
-                        }
-                    }
-                    if($attribute->getName() === ReferenceArray::class) {
-                        $referenceClassName = $this->getAttributeArgument($attribute, 'referenceClassName');
-                        if($referenceClassName === null || $referenceClassName === '') {
-                            throw new MappingCreationException('Invalid ReferenceArray attribute for '.$dtoClassName.'::$'.$propertyName);
-                        }
-                        if(!class_exists($referenceClassName)) {
-                            throw new MappingCreationException($referenceClassName.' is not a valid class name');
-                        }
-                        /** @var class-string $referenceClassName */
-                        $objectsMapping[$dtoClassName][$propertyName] = $referenceClassName;
-                        $this->createMappingRecursive($referenceClassName, $objectIdentifiers, $objectsMapping, $mappingPath);
-                    } else {
-                        $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
-                        if($mappedPropertyName === null || $mappedPropertyName === '') {
-                            throw new MappingCreationException('Invalid ScalarArray attribute for '.$dtoClassName.'::$'.$propertyName);
-                        }
-                        $objectsMapping[$dtoClassName][$propertyName] = $mappedPropertyName;
-                    }
-                    continue 2;
-                } else if ($attribute->getName() === Identifier::class) {
-                    $identifiersCount++;
-                    $isIdentifier = true;
-                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
-                    if($mappedPropertyName === '') {
-                        throw new MappingCreationException('Invalid Identifier attribute for '.$dtoClassName.'::$'.$propertyName);
-                    }
-                    if($mappedPropertyName !== null) {
-                        $columnName = $mappedPropertyName;
-                    }
-                } else if ($attribute->getName() === Scalar::class) {
-                    $mappedPropertyName = $this->getAttributeArgument($attribute, 'mappedPropertyName');
-                    if($mappedPropertyName === null || $mappedPropertyName === '') {
-                        throw new MappingCreationException('Invalid Scalar attribute for '.$dtoClassName.'::$'.$propertyName);
-                    }
-                    $columnName = $mappedPropertyName;
-                }
-            }
-
-            if ($isIdentifier) {
-                $objectIdentifiers[$dtoClassName] = $columnName;
-            }
-
-            $objectsMapping[$dtoClassName][$columnName] = null;
-        }
-
-        if($this->validateMapping) {
-            if($identifiersCount !== 1) {
-                throw new MappingCreationException($dtoClassName.' does not contain exactly one #[Identifier] attribute.');
-            }
-
-            $uniqueCheck = [];
-            foreach ($objectIdentifiers as $key => $value) {
-                if (isset($uniqueCheck[$value])) {
-                    throw new MappingCreationException('Several data identifiers are identical: ' . print_r($objectIdentifiers, true));
-                }
-                $uniqueCheck[$value] = true;
-            }
-        }
-
-        return [
-            'objectIdentifiers' => $objectIdentifiers,
-            'objectsMapping' => $objectsMapping
-        ];
-    }
-
-    /**
-     * @param ReflectionAttribute<object> $attribute
-     */
-    private function getAttributeArgument(ReflectionAttribute $attribute, string $argumentName): ?string
-    {
-        $arguments = $attribute->getArguments();
-
-        if (array_key_exists($argumentName, $arguments)) {
-            return $arguments[$argumentName] === null ? null : (string)$arguments[$argumentName];
-        }
-
-        if (array_key_exists(0, $arguments)) {
-            return $arguments[0] === null ? null : (string)$arguments[0];
-        }
-
-        return null;
-    }
-
-    private function transformPropertyName(string $propertyName, NameTransformation $transformation): string
-    {
-        if ($transformation->snakeCaseColumns) {
-            $propertyName = strtolower(preg_replace(
-                [self::SNAKE_CASE_PATTERN_1, self::SNAKE_CASE_PATTERN_2],
-                self::SNAKE_CASE_REPLACEMENT,
-                $propertyName
-            ) ?? $propertyName);
-        }
-        return $transformation->columnPrefix . $propertyName;
     }
 
     /**
