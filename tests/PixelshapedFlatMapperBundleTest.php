@@ -22,7 +22,6 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -211,26 +210,11 @@ class PixelshapedFlatMapperMockCacheAdapter implements CacheInterface
      */
     public function get(string $key, callable $callback, ?float $beta = null, ?array &$metadata = null): mixed
     {
-        return $callback($this->createMockItem(), false);
+        return $callback();
     }
 
     public function delete(string $key): bool
     {
         return true;
-    }
-
-    private function createMockItem(): ItemInterface
-    {
-        return new class implements ItemInterface {
-            public function getKey(): string { return 'test'; }
-            public function get(): mixed { return null; }
-            public function isHit(): bool { return false; }
-            public function set(mixed $value): static { return $this; }
-            public function expiresAt(?\DateTimeInterface $expiration): static { return $this; }
-            public function expiresAfter(int|\DateInterval|null $time): static { return $this; }
-            public function tag(iterable|string $tags): static { return $this; }
-            /** @return array<string, mixed> */
-            public function getMetadata(): array { return []; }
-        };
     }
 }
