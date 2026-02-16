@@ -478,9 +478,18 @@ final class FlatMapper
      */
     private function resolveAttributeClassName(string $attributeName, string $mappingTarget): string
     {
-        $className = str_contains($attributeName, '\\')
-            ? $attributeName
+        $normalizedAttributeName = ltrim($attributeName, '\\');
+        $className = str_contains($normalizedAttributeName, '\\')
+            ? $normalizedAttributeName
             : self::MAPPING_NAMESPACE_PREFIX.$attributeName;
+
+        if (!str_starts_with($className, self::MAPPING_NAMESPACE_PREFIX)) {
+            throw new MappingCreationException(sprintf(
+                'Invalid YAML mapping for %s. Unsupported mapping attribute class "%s".',
+                $mappingTarget,
+                $className
+            ));
+        }
 
         if (!class_exists($className)) {
             throw new MappingCreationException(sprintf(

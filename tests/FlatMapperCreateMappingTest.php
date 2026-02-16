@@ -335,6 +335,22 @@ class FlatMapperCreateMappingTest extends TestCase
         $flatMapper->createMapping(YamlAuthorDTO::class);
     }
 
+    public function testCreateMappingWithUnsupportedYamlAttributeClassAsserts(): void
+    {
+        $flatMapper = new FlatMapper();
+        $flatMapper->setYamlMappings([
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => [FlatMapper::class => []],
+                ],
+            ],
+        ]);
+
+        $this->expectException(MappingCreationException::class);
+        $this->expectExceptionMessageMatches('/Unsupported mapping attribute class/');
+        $flatMapper->createMapping(YamlBookDTO::class);
+    }
+
     public function testCreateMappingWithYamlClassAttributesSetToNullDoesNotAssert(): void
     {
         $flatMapper = new FlatMapper();
