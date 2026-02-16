@@ -24,9 +24,9 @@ final class FlatMapper
 
     private MappingResolver $mappingResolver;
 
-    public function __construct(?MappingResolver $mappingResolver = null)
+    public function __construct()
     {
-        $this->mappingResolver = $mappingResolver ?? new MappingResolver();
+        $this->mappingResolver = new MappingResolver();
     }
 
     public function setCacheService(CacheInterface $cacheService): void
