@@ -29,6 +29,7 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarDTOWithReadonlyClass
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\AuthorDTO as YamlAuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Yaml\BookDTO as YamlBookDTO;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 #[CoversMethod(FlatMapper::class, 'createMapping')]
 #[CoversMethod(FlatMapper::class, 'createMappingRecursive')]
@@ -76,6 +77,76 @@ class FlatMapperCreateMappingTest extends TestCase
 
         $flatMapper->setCacheService($cacheInterface);
         $flatMapper->createMapping(AuthorDTO::class);
+    }
+
+    public function testCreateMappingWithCacheServiceInvalidatesRootCacheWhenNestedYamlMappingChanges(): void
+    {
+        $cachedMappings = [];
+        $cacheItem = $this->createStub(ItemInterface::class);
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturnCallback(
+            function (string $key, callable $callback) use (&$cachedMappings, $cacheItem): mixed {
+                if (!array_key_exists($key, $cachedMappings)) {
+                    $save = true;
+                    $cachedMappings[$key] = $callback($cacheItem, $save);
+                }
+
+                return $cachedMappings[$key];
+            }
+        );
+
+        $flatMapper = new FlatMapper();
+        $flatMapper->setCacheService($cache);
+
+        $authorMapping = [
+            'class' => [
+                'NameTransformation' => ['columnPrefix' => 'author_'],
+            ],
+            'properties' => [
+                'id' => ['Identifier' => null],
+                'books' => ['ReferenceArray' => YamlBookDTO::class],
+            ],
+        ];
+
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => $authorMapping,
+            YamlBookDTO::class => [
+                'class' => [
+                    'NameTransformation' => ['columnPrefix' => 'book_', 'snakeCaseColumns' => true],
+                ],
+                'properties' => [
+                    'id' => ['Identifier' => null],
+                ],
+            ],
+        ]);
+        $flatMapper->map(YamlAuthorDTO::class, [[
+            'author_id' => 1,
+            'author_name' => 'Alice',
+            'book_id' => 10,
+            'book_name' => 'Original title',
+            'book_publisher_name' => 'Original publisher',
+        ]]);
+
+        $flatMapper->setYamlMappings([
+            YamlAuthorDTO::class => $authorMapping,
+            YamlBookDTO::class => [
+                'properties' => [
+                    'id' => ['Identifier' => 'book_id'],
+                    'name' => ['Scalar' => 'book_title'],
+                    'publisherName' => ['Scalar' => 'book_publisher'],
+                ],
+            ],
+        ]);
+        $mappedResults = $flatMapper->map(YamlAuthorDTO::class, [[
+            'author_id' => 1,
+            'author_name' => 'Alice',
+            'book_id' => 10,
+            'book_title' => 'Updated title',
+            'book_publisher' => 'Updated publisher',
+        ]]);
+
+        $this->assertSame('Updated title', $mappedResults[1]->books[10]->name);
+        $this->assertSame('Updated publisher', $mappedResults[1]->books[10]->publisherName);
     }
 
     public function testCreateMappingWrongClassNameAsserts(): void

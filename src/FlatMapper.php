@@ -300,7 +300,7 @@ final class FlatMapper
     private function createCacheKey(string $dtoClassName): string
     {
         $cacheKey = strtr($dtoClassName, ['\\' => '_', '-' => '_', ' ' => '_']);
-        $mappingHash = md5(serialize($this->yamlMappings[$dtoClassName] ?? []));
+        $mappingHash = md5(serialize($this->yamlMappings));
 
         return 'pixelshaped_flat_mapper_'.$cacheKey.'_'.$mappingHash;
     }
