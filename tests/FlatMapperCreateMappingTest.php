@@ -5,22 +5,23 @@ namespace Pixelshaped\FlatMapperBundle\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\Exception\MappingCreationException;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\Circular\CycleRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\NameTransformation\InvalidNameTransformationDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootAbstractDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTO as InvalidRootDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyClassIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyStringClassIdentifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithEmptyStringPropertyIdentifier;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootAbstractDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidReferenceArrayClass;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNonStringScalarArgument;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarArrayAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithInvalidScalarAttribute;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNoIdentifier;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithNonStringScalarArgument;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithoutConstructor;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithReadonlyClassModifier;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Invalid\RootDTOWithTooManyIdentifiers;
@@ -164,11 +165,21 @@ class FlatMapperCreateMappingTest extends TestCase
         (new FlatMapper())->createMapping(InvalidRootDTO::class);
     }
 
-    public function testCreateMappingWithTooManyIdentifiersAsserts(): void
+    #[DataProvider('problematicIdentifierProvider')]
+    public function testCreateMappingWithProblematicIdentifiersAsserts(string $className): void
     {
         $this->expectException(MappingCreationException::class);
         $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
-        (new FlatMapper())->createMapping(RootDTOWithTooManyIdentifiers::class);
+        (new FlatMapper())->createMapping($className);
+    }
+
+    /**
+     * @return iterable<array<class-string>>
+     */
+    public static function problematicIdentifierProvider(): iterable
+    {
+        yield [RootDTOWithTooManyIdentifiers::class];
+        yield [RootDTOWithNoIdentifier::class];
     }
 
     public function testCreateMappingWithReadonlyModifierOnNonScalarDtoAsserts(): void
@@ -182,13 +193,6 @@ class FlatMapperCreateMappingTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
         (new FlatMapper())->createMapping(ScalarDTOWithReadonlyClassModifier::class);
-    }
-
-    public function testCreateMappingWithNoIdentifierAsserts(): void
-    {
-        $this->expectException(MappingCreationException::class);
-        $this->expectExceptionMessageMatches("/does not contain exactly one #\[Identifier\] attribute/");
-        (new FlatMapper())->createMapping(RootDTOWithNoIdentifier::class);
     }
 
     public function testCreateMappingWithNoConstructorAsserts(): void

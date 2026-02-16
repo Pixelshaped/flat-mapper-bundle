@@ -12,6 +12,8 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ClassAttributes\BookDTO as
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\CustomerDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\InvoiceDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\Complex\ProductDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsChildDTO;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsParentDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\AccountDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\CarDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ItemDTO;
@@ -19,8 +21,6 @@ use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\LegacyD
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\OrderDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\PersonDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NameTransformation\ProductDTO as NameTransformationProductDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsChildDTO;
-use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\NamedArguments\NamedArgumentsParentDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\AuthorDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ReferenceArray\BookDTO;
 use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\ScalarArray\ScalarArrayDTO;
@@ -82,20 +82,6 @@ class FlatMapperTest extends TestCase
         ];
 
         $flatMapper->map(AuthorDTO::class, $results);
-    }
-
-    public function testMappingDataWithBadlyNamedPropertyAsserts(): void
-    {
-        $this->expectException(MappingException::class);
-        $this->expectExceptionMessageMatches('/Data does not contain required property: book_publisher_name/');
-
-        $results = [
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
-            ['author_id' => 1, 'author_name' => 'Alice Brian', 'book_id' => 2, 'book_name' => 'My journeys', 'badly_named_publisher_field' => 'Lorem Press'],
-            ['author_id' => 2, 'author_name' => 'Bob Schmo', 'book_id' => 1, 'book_name' => 'Travelling as a group', 'badly_named_publisher_field' => 'TravelBooks'],
-        ];
-
-        ((new FlatMapper())->map(AuthorDTO::class, $results));
     }
 
     public function testMappingDataWithMissingPropertyAsserts(): void
@@ -450,7 +436,7 @@ class FlatMapperTest extends TestCase
     {
         $this->expectException(MappingException::class);
         $this->expectExceptionMessageMatches('/Identifier not found: product_id/');
-        
+
         $results = [
             ['ProductId' => 1, 'ProductName' => 'Widget', 'ProductPrice' => 19.99],
             ['ProductId' => 2, 'ProductName' => 'Gadget', 'ProductPrice' => 29.99],
