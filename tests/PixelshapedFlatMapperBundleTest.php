@@ -3,21 +3,30 @@ declare(strict_types=1);
 
 namespace Pixelshaped\FlatMapperBundle\Tests;
 
+use FilesystemIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Pixelshaped\FlatMapperBundle\FlatMapper;
 use Pixelshaped\FlatMapperBundle\PixelshapedFlatMapperBundle;
+use Pixelshaped\FlatMapperBundle\Tests\Examples\Valid\WithoutAttributeDTO;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Loader\DefinitionFileLoader;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
+#[CoversClass(FlatMapper::class)]
 #[CoversClass(PixelshapedFlatMapperBundle::class)]
 class PixelshapedFlatMapperBundleTest extends TestCase
 {
@@ -107,6 +116,24 @@ class PixelshapedFlatMapperBundleTest extends TestCase
         );
     }
 
+    public function testBundleWiringWithCacheAndYamlMappingsWorksEndToEnd(): void
+    {
+        $this->clearKernelCacheDir();
+
+        $kernel = new PixelshapedFlatMapperTestingKernelWithCacheAndMappings('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+        $flatMapper = $container->get('pixelshaped_flat_mapper.flat_mapper');
+
+        $this->assertInstanceOf(FlatMapper::class, $flatMapper);
+
+        $mapped = $flatMapper->map(WithoutAttributeDTO::class, [
+            ['row_id' => 1, 'row_foo' => 'Foo 1', 'row_bar' => 2],
+        ]);
+
+        $this->assertEquals([1 => new WithoutAttributeDTO(1, 'Foo 1', 2)], $mapped);
+    }
+
     private function createContainerConfigurator(ContainerBuilder $containerBuilder): ContainerConfigurator
     {
         $instanceof = [];
@@ -121,5 +148,89 @@ class PixelshapedFlatMapperBundleTest extends TestCase
             $bundlePath,
             'test'
         );
+    }
+
+    private function clearKernelCacheDir(): void
+    {
+        $cacheDir = dirname(__DIR__).'/var/cache/test';
+        if (!is_dir($cacheDir)) {
+            return;
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($cacheDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        /** @var \SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if ($item->isDir()) {
+                rmdir($item->getPathname());
+                continue;
+            }
+            unlink($item->getPathname());
+        }
+        rmdir($cacheDir);
+    }
+}
+
+class PixelshapedFlatMapperTestingKernelWithCacheAndMappings extends Kernel
+{
+    public function registerBundles(): iterable
+    {
+        return [
+            new PixelshapedFlatMapperBundle(),
+        ];
+    }
+
+    public function registerContainerConfiguration(LoaderInterface $loader): void
+    {
+        $loader->load(function ($container) {
+            $container->register('cache.app', PixelshapedFlatMapperMockCacheAdapter::class);
+
+            $container->loadFromExtension('pixelshaped_flat_mapper', [
+                'cache_service' => 'cache.app',
+                'validate_mapping' => false,
+                'mappings' => [
+                    WithoutAttributeDTO::class => [
+                        'properties' => [
+                            'id' => ['Scalar' => 'row_id'],
+                            'foo' => ['Scalar' => 'row_foo'],
+                            'bar' => ['Scalar' => 'row_bar'],
+                        ],
+                    ],
+                ],
+            ]);
+        });
+    }
+}
+
+class PixelshapedFlatMapperMockCacheAdapter implements CacheInterface
+{
+    /**
+     * @param array<string, mixed>|null $metadata
+     */
+    public function get(string $key, callable $callback, ?float $beta = null, ?array &$metadata = null): mixed
+    {
+        return $callback($this->createMockItem(), false);
+    }
+
+    public function delete(string $key): bool
+    {
+        return true;
+    }
+
+    private function createMockItem(): ItemInterface
+    {
+        return new class implements ItemInterface {
+            public function getKey(): string { return 'test'; }
+            public function get(): mixed { return null; }
+            public function isHit(): bool { return false; }
+            public function set(mixed $value): static { return $this; }
+            public function expiresAt(?\DateTimeInterface $expiration): static { return $this; }
+            public function expiresAfter(int|\DateInterval|null $time): static { return $this; }
+            public function tag(iterable|string $tags): static { return $this; }
+            /** @return array<string, mixed> */
+            public function getMetadata(): array { return []; }
+        };
     }
 }
